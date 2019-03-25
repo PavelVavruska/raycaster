@@ -28,8 +28,12 @@ import java.awt.Graphics;
 import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.TreeMap;
+import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import raycaster.models.Map;
@@ -49,8 +53,16 @@ public class Raycaster extends JPanel {
     static int screenHeight = 480;
     int pixelSize = 20;
     Map map = new Map();
+    BufferedImage img = null;
 
     public Raycaster() {
+
+        try {
+            img = ImageIO.read(new File("static/textures.png"));
+        } catch (IOException e) {
+            System.out.println("ERROR READ FILE");
+        }
+
         KeyEventDispatcher keyEventDispatcher = new KeyEventDispatcher() {
             @Override
             public boolean dispatchKeyEvent(final KeyEvent e) {
@@ -103,10 +115,16 @@ public class Raycaster extends JPanel {
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(keyEventDispatcher);
     }
 
-    private void paintColoredDot(Graphics g, double x, double y, Color color) {
+    private void paintColoredDotInMenu(Graphics g, double x, double y, Color color) {
         g.setColor(color);
         g.drawLine(screenWidth + (int) (x * pixelSize), (int) (y * pixelSize),
                 screenWidth + (int) (x * pixelSize), (int) (y * pixelSize));
+    }
+
+    private void paintColoredVerticalLine(Graphics g, double x, double y1, double y2, Color color) {
+        g.setColor(color);
+        g.drawLine((int) (x), (int) (y1),
+                (int) (x), (int) (y2));
     }
 
     @Override
@@ -170,7 +188,7 @@ public class Raycaster extends JPanel {
 
             double rayY = player.getY(); // start position of ray on Y axis
             double rayX = player.getX(); // start position of ray on X axis
-            TreeMap<Double, Integer> zBuffer = new TreeMap(Collections.reverseOrder()); // Double = how far, Integer = what object type
+            TreeMap<Double, Double> zBuffer = new TreeMap(Collections.reverseOrder()); // Double = how far, Integer = what object type
 
             double lengthDeltaX;
             double lengthDeltaY;
@@ -199,13 +217,16 @@ public class Raycaster extends JPanel {
 
                 if (checkX >= 0 && checkY >= 0 && checkX < map.getSizeX() && checkY < map.getSizeY()) {
                     int objectOnTheMap = map.getMap()[(int) checkY][(int) checkX];
+                    double offset = (rayX - checkX) / 2 + (rayY - checkY) / 2;
+
+                    Double objectInfo = objectOnTheMap + offset;
 
                     if (objectOnTheMap != 0) // read the map and save it to zbuffer
                     {
                         double x12 = player.getX() - rayX;
                         double y12 = player.getY() - rayY;
                         double distanceOfTwoPoints = Math.sqrt(Math.pow(x12, 2) + Math.pow(y12, 2));
-                        zBuffer.put(distanceOfTwoPoints, objectOnTheMap);
+                        zBuffer.put(distanceOfTwoPoints, objectInfo);
                         break;
                     }
                 }
@@ -230,7 +251,7 @@ public class Raycaster extends JPanel {
                         rayX += lengthDeltaY / Math.tan(Math.toRadians(rayAngle));
                         rayY = rayY + lengthDeltaY;
                     }
-                    paintColoredDot(g, rayX, rayY, Color.green);
+                    paintColoredDotInMenu(g, rayX, rayY, Color.green);
 
                 } else if (rayAngle > 90 && rayAngle < 180) {
                     lengthDeltaX = 1 - (int) Math.ceil(rayX) + rayX;
@@ -244,7 +265,7 @@ public class Raycaster extends JPanel {
                         rayX -= Math.tan(Math.toRadians(rayAngle - 90)) * lengthDeltaY;
                         rayY = rayY + lengthDeltaY;
                     }
-                    paintColoredDot(g, rayX, rayY, Color.green);
+                    paintColoredDotInMenu(g, rayX, rayY, Color.green);
 
                 } else if (rayAngle >= 180 && rayAngle < 270) {
                     lengthDeltaX = 1 - (int) Math.ceil(rayX) + rayX;
@@ -258,7 +279,7 @@ public class Raycaster extends JPanel {
                         rayX -= lengthDeltaY / Math.tan(Math.toRadians(rayAngle - 180));
                         rayY = rayY - lengthDeltaY;
                     }
-                    paintColoredDot(g, rayX, rayY, Color.green);
+                    paintColoredDotInMenu(g, rayX, rayY, Color.green);
 
                 } else if (rayAngle >= 270 && rayAngle < 360) {
                     lengthDeltaX = 1 + (int) rayX - rayX;
@@ -272,7 +293,7 @@ public class Raycaster extends JPanel {
                         rayX = rayX + lengthDeltaX;
                         rayY -= lengthDeltaX / Math.tan(Math.toRadians(rayAngle - 270));
                     }
-                    paintColoredDot(g, rayX, rayY, Color.green);
+                    paintColoredDotInMenu(g, rayX, rayY, Color.green);
                 }
                 lastRayX = rayY;
                 lastRayY = rayX;
@@ -280,29 +301,52 @@ public class Raycaster extends JPanel {
 
             if (!zBuffer.isEmpty()) {
 
-                for (java.util.Map.Entry<Double, Integer> entry : zBuffer.entrySet()) {
+                for (java.util.Map.Entry<Double, Double> entry : zBuffer.entrySet()) {
 
-                    switch (entry.getValue()) {
-                        case 1:
-                            g.setColor(new Color(0, 0, (int) (255 - entry.getKey() * 10))); //BLUE
-                            break;
-                        case 2:
-                            g.setColor(new Color((int) (109 - entry.getKey() * 5), (int) (200 - entry.getKey() * 5), (int) (200 - entry.getKey() * 5))); //DOOR LIGHT BLUE
-                            break;
-                        case 3:
-                            g.setColor(new Color((int) (200 - entry.getKey() * 5), (int) (200 - entry.getKey() * 5), (int) (200 - entry.getKey() * 5))); // LIGHT GRAY
-                            break;
-                        case 4:
-                            g.setColor(new Color((int) (255 - entry.getKey() * 5), (int) (150 - entry.getKey() * 5), 0)); // ORANGE
-                            break;
-                        default:
-                            break;
-                    }
                     // Actual line by line rendering of the visible object
-                    g.drawLine(xcor,
-                            (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2)),
-                            xcor,
-                            (int) (screenHeight / 2 + screenHeight / (entry.getKey() * 2)));
+                    int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
+                    int end = (int) (screenHeight / 2 + screenHeight / (entry.getKey() * 2));
+                    double middle = 2 * screenHeight / (entry.getKey() * 2);
+                    if (middle > 1000) {
+                        // Performance fix for walking through the wall
+                        middle = 1000;
+                    }
+
+                    double oneArtificialPixelSize = middle / 64;
+                    if (oneArtificialPixelSize < 0.001) {
+                        oneArtificialPixelSize = 0.001;
+                    }
+
+                    for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) {
+                        int colorPixel = (int) ((verticalPixel) / oneArtificialPixelSize);
+                        if (colorPixel == 0) {
+                            colorPixel = 1;
+                        }
+                        if (colorPixel >= 63) {
+                            colorPixel = 63;
+                        }
+                        int xCorTexture = (int) (entry.getValue() * 64 - 64);
+                        if (xCorTexture > 256) {
+                            xCorTexture = 256;
+                        }
+                        if (xCorTexture <= 1) {
+                            xCorTexture = 1;
+                        }
+
+                        Color imgColor = new Color(img.getRGB(xCorTexture, colorPixel));
+                        int red = (int) (imgColor.getRed() - entry.getKey() * 5);
+                        int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
+                        int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
+
+                        Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
+
+                        paintColoredVerticalLine(g,
+                                xcor,
+                                start + middle / 64 * colorPixel,
+                                start + middle / 64 * colorPixel + oneArtificialPixelSize,
+                                resultColor);
+                    }
+
                 }
             }
         }
