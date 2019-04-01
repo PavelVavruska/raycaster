@@ -1,0 +1,27 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    testCompile("org.junit.jupiter:junit-jupiter-api:5.4.1")
+    testRuntime("org.junit.jupiter:junit-jupiter-engine:5.4.1")
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// Define the main class for the application
+mainClassName = 'raycaster.Raycaster'
+
+
+jar {
+    manifest {
+        attributes 'Main-Class': '${mainClassName}'
+    }
+}
