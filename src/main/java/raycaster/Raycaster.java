@@ -307,28 +307,18 @@ public class Raycaster extends JPanel {
                     int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
                     int end = (int) (screenHeight / 2 + screenHeight / (entry.getKey() * 2));
                     double middle = 2 * screenHeight / (entry.getKey() * 2);
-                    if (middle > 1000) {
-                        // Performance fix for walking through the wall
-                        middle = 1000;
-                    }
 
                     double oneArtificialPixelSize = middle / 64;
-                    if (oneArtificialPixelSize < 0.001) {
-                        oneArtificialPixelSize = 0.001;
-                    }
 
-                    for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) {
+                    for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
                         int colorPixel = (int) ((verticalPixel) / oneArtificialPixelSize);
-                        if (colorPixel == 0) {
-                            colorPixel = 1;
-                        }
-                        if (colorPixel >= 63) {
+
+                        if (colorPixel > 63) {
                             colorPixel = 63;
                         }
+
                         int xCorTexture = (int) (entry.getValue() * 64 - 64);
-                        if (xCorTexture > 256) {
-                            xCorTexture = 256;
-                        }
+
                         if (xCorTexture <= 1) {
                             xCorTexture = 1;
                         }
@@ -339,14 +329,15 @@ public class Raycaster extends JPanel {
                         int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
 
                         Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
-
-                        paintColoredVerticalLine(g,
-                                xcor,
-                                start + middle / 64 * colorPixel,
-                                start + middle / 64 * colorPixel + oneArtificialPixelSize,
-                                resultColor);
+                        // Performance fix - skipping colorPixels outside of the POV
+                        if (start + middle / 64 * colorPixel >= -64 && start + middle / 64 * colorPixel <= 450) {
+                            paintColoredVerticalLine(g,
+                                    xcor,
+                                    start + middle / 64 * colorPixel,
+                                    start + middle / 64 * colorPixel + oneArtificialPixelSize,
+                                    resultColor);
+                        }
                     }
-
                 }
             }
         }
