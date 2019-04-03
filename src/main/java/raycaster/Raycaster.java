@@ -47,7 +47,7 @@ import raycaster.models.Player;
 public class Raycaster extends JPanel {
 
     static JFrame frame = new JFrame("Raycaster");
-    Player player = new Player(3, 3, 45, 90);
+    Player player = new Player(3, 3, 45, 90, true);
     static int screenWidth = 640;
     static int screenWidthExtension = 400;
     static int screenHeight = 480;
@@ -95,6 +95,9 @@ public class Raycaster extends JPanel {
                             break;
                         case 'n':
                             player.setFov(player.getFov() - 1);
+                            break;
+                        case 'p':
+                            player.setPerspectiveCorrection(!player.isPerspectiveCorrection());
                             break;
                         case 'q':
                             player.setX(player.getX() + Math.sin(Math.toRadians(player.getAngle())) / 10);
@@ -192,7 +195,8 @@ public class Raycaster extends JPanel {
 
             double lengthDeltaX;
             double lengthDeltaY;
-            double toTileEdgeAngle;
+            double toTileEdgeAngle = 0D;
+            double perspectiveCorrectionAngle = 0D;
 
             double lastRayX = 0D;
             double lastRayY = 0D;
@@ -226,7 +230,15 @@ public class Raycaster extends JPanel {
                         double x12 = player.getX() - rayX;
                         double y12 = player.getY() - rayY;
                         double distanceOfTwoPoints = Math.sqrt(Math.pow(x12, 2) + Math.pow(y12, 2));
-                        zBuffer.put(distanceOfTwoPoints, objectInfo);
+
+                        if (player.isPerspectiveCorrection()) {
+                            perspectiveCorrectionAngle = Math.abs(rayAngle) - Math.abs(playerAngle);
+                            double perspectiveCorrection = Math.cos(Math.toRadians(perspectiveCorrectionAngle)) * distanceOfTwoPoints;
+                            zBuffer.put(perspectiveCorrection, objectInfo);
+                        } else {
+                            zBuffer.put(distanceOfTwoPoints, objectInfo);
+                        }
+
                         break;
                     }
                 }
@@ -251,50 +263,47 @@ public class Raycaster extends JPanel {
                         rayX += lengthDeltaY / Math.tan(Math.toRadians(rayAngle));
                         rayY = rayY + lengthDeltaY;
                     }
-                    paintColoredDotInMenu(g, rayX, rayY, Color.green);
 
                 } else if (rayAngle > 90 && rayAngle < 180) {
                     lengthDeltaX = 1 - (int) Math.ceil(rayX) + rayX;
                     lengthDeltaY = 1 + (int) rayY - rayY;
-                    toTileEdgeAngle = Math.toDegrees(Math.atan(lengthDeltaX / lengthDeltaY));
+                    toTileEdgeAngle = 90 + Math.toDegrees(Math.atan(lengthDeltaX / lengthDeltaY));
 
-                    if (toTileEdgeAngle + 90 <= rayAngle) {
+                    if (toTileEdgeAngle <= rayAngle) {
                         rayX = rayX - lengthDeltaX;
                         rayY += lengthDeltaX / Math.tan(Math.toRadians(rayAngle - 90));
                     } else {
                         rayX -= Math.tan(Math.toRadians(rayAngle - 90)) * lengthDeltaY;
                         rayY = rayY + lengthDeltaY;
                     }
-                    paintColoredDotInMenu(g, rayX, rayY, Color.green);
 
                 } else if (rayAngle >= 180 && rayAngle < 270) {
                     lengthDeltaX = 1 - (int) Math.ceil(rayX) + rayX;
                     lengthDeltaY = 1 - (int) Math.ceil(rayY) + rayY;
-                    toTileEdgeAngle = Math.toDegrees(Math.atan(lengthDeltaY / lengthDeltaX));
+                    toTileEdgeAngle = 180 + Math.toDegrees(Math.atan(lengthDeltaY / lengthDeltaX));
 
-                    if (toTileEdgeAngle + 180 > rayAngle) {
+                    if (toTileEdgeAngle > rayAngle) {
                         rayX = rayX - lengthDeltaX;
                         rayY -= Math.tan(Math.toRadians(rayAngle - 180)) * lengthDeltaX;
                     } else {
                         rayX -= lengthDeltaY / Math.tan(Math.toRadians(rayAngle - 180));
                         rayY = rayY - lengthDeltaY;
                     }
-                    paintColoredDotInMenu(g, rayX, rayY, Color.green);
 
                 } else if (rayAngle >= 270 && rayAngle < 360) {
                     lengthDeltaX = 1 + (int) rayX - rayX;
                     lengthDeltaY = 1 - (int) Math.ceil(rayY) + rayY;
-                    toTileEdgeAngle = Math.toDegrees(Math.atan(lengthDeltaX / lengthDeltaY));
+                    toTileEdgeAngle = 270 + Math.toDegrees(Math.atan(lengthDeltaX / lengthDeltaY));
 
-                    if (toTileEdgeAngle + 270 > rayAngle) {
+                    if (toTileEdgeAngle > rayAngle) {
                         rayX += Math.tan(Math.toRadians(rayAngle - 270)) * lengthDeltaY;
                         rayY = rayY - lengthDeltaY;
                     } else {
                         rayX = rayX + lengthDeltaX;
                         rayY -= lengthDeltaX / Math.tan(Math.toRadians(rayAngle - 270));
                     }
-                    paintColoredDotInMenu(g, rayX, rayY, Color.green);
                 }
+                paintColoredDotInMenu(g, rayX, rayY, Color.green);
                 lastRayX = rayY;
                 lastRayY = rayX;
             }
@@ -311,7 +320,7 @@ public class Raycaster extends JPanel {
                     double oneArtificialPixelSize = middle / 64;
 
                     for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
-                        int colorPixel = (int) ((verticalPixel) / oneArtificialPixelSize);
+                        int colorPixel = (int) (verticalPixel / oneArtificialPixelSize);
 
                         if (colorPixel > 63) {
                             colorPixel = 63;

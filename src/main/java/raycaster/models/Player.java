@@ -33,12 +33,16 @@ public class Player {
     private double y;
     private double angle;
     private double fov;
+    private boolean perspectiveCorrection;
 
-    public Player(double x, double y, double angle, double fov) {
+
+
+    public Player(double x, double y, double angle, double fov, boolean perspectiveCorrection) {
         this.x = x;
         this.y = y;
         this.angle = angle;
         this.fov = fov;
+        this.perspectiveCorrection = perspectiveCorrection;
     }
 
     public double getX() {
@@ -71,5 +75,13 @@ public class Player {
 
     public void setFov(double fov) {
         this.fov = fov;
+    }
+
+    public boolean isPerspectiveCorrection() {
+        return perspectiveCorrection;
+    }
+
+    public void setPerspectiveCorrection(boolean perspectiveCorrection) {
+        this.perspectiveCorrection = perspectiveCorrection;
     }
 }
