@@ -25,6 +25,7 @@ package raycaster;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
 import java.awt.event.KeyEvent;
@@ -59,6 +60,7 @@ public class Raycaster extends JPanel {
     private static Long endTime = 0L;
     private static LinkedList<Integer> frameTimes = new LinkedList<>();
     private static  BufferedImage img = null;
+    private JPanel jpanel;
 
     private Player player = new Player(3, 3, 45);
     private Config config = new Config(90, true, true);
@@ -130,32 +132,36 @@ public class Raycaster extends JPanel {
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(keyEventDispatcher);
     }
 
-    private void paintColoredDotInMenu(Graphics g, double x, double y, Color color) {
+    private void paintColoredDotInMenu(Graphics2D g, double x, double y, Color color) {
         g.setColor(color);
         g.drawLine(screenWidth + (int) (x * pixelSize), (int) (y * pixelSize),
                 screenWidth + (int) (x * pixelSize), (int) (y * pixelSize));
     }
 
-    private void paintColoredVerticalLine(Graphics g, double x, double y1, double y2, Color color) {
+    private void paintColoredVerticalLine(Graphics2D g, double x, double y1, double y2, Color color) {
         g.setColor(color);
         g.drawLine((int) (x), (int) (y1),
                 (int) (x), (int) (y2));
     }
 
     @Override
-    public void paint(Graphics g) {
+    protected void paintComponent(Graphics g)
+    {
+        BufferedImage bufferedImage = new BufferedImage(screenWidth+screenWidthExtension, screenHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = bufferedImage.createGraphics();
+        //paint using g2d ...
         endTime = startTime;
         startTime = System.nanoTime();
 
-        g.setColor(new Color(50, 50, 50)); // ceiling
-        g.fillRect(screenWidth, 0, screenWidth + screenWidthExtension, screenHeight);
-        g.setColor(new Color(56, 56, 56)); // ceiling
-        g.fillRect(0, 0, screenWidth, screenHeight / 2);
-        g.setColor(new Color(112, 112, 112)); // floor
-        g.fillRect(0, screenHeight / 2, screenWidth, screenHeight);
+        g2d.setColor(new Color(50, 50, 50)); // ceiling
+        g2d.fillRect(screenWidth, 0, screenWidth + screenWidthExtension, screenHeight);
+        g2d.setColor(new Color(56, 56, 56)); // ceiling
+        g2d.fillRect(0, 0, screenWidth, screenHeight / 2);
+        g2d.setColor(new Color(112, 112, 112)); // floor
+        g2d.fillRect(0, screenHeight / 2, screenWidth, screenHeight);
 
         int fovLinesLength = 12;
-        g.setColor(Color.green);
+        g2d.setColor(Color.green);
 
         double playerAngle = player.getAngle();
         double playerAngleStart = playerAngle - config.getFov() / 2;
@@ -163,27 +169,27 @@ public class Raycaster extends JPanel {
         int xx = 0;
         int yy = 0;
 
-        g.setColor(Color.black);
+        g2d.setColor(Color.black);
         for (int[] y : map.getMap()) {
             for (int x : y) {
                 if (x > 0) {
                     switch (x) {
                         case 1:
-                            g.setColor(Color.black);
+                            g2d.setColor(Color.black);
                             break;
                         case 2:
-                            g.setColor(Color.cyan);
+                            g2d.setColor(Color.cyan);
                             break;
                         case 3:
-                            g.setColor(Color.lightGray);
+                            g2d.setColor(Color.lightGray);
                             break;
                         case 4:
-                            g.setColor(Color.orange);
+                            g2d.setColor(Color.orange);
                             break;
                         default:
                             break;
                     }
-                    g.drawRect(screenWidth + xx * pixelSize + 2, yy * pixelSize + 2, pixelSize - 4, pixelSize - 4);
+                    g2d.drawRect(screenWidth + xx * pixelSize + 2, yy * pixelSize + 2, pixelSize - 4, pixelSize - 4);
                 }
                 xx++;
             }
@@ -318,7 +324,7 @@ public class Raycaster extends JPanel {
                         rayY -= lengthDeltaX / Math.tan(Math.toRadians(rayAngle - 270));
                     }
                 }
-                paintColoredDotInMenu(g, rayX, rayY, Color.green);
+                paintColoredDotInMenu(g2d, rayX, rayY, Color.green);
                 lastRayX = rayY;
                 lastRayY = rayX;
             }
@@ -355,7 +361,7 @@ public class Raycaster extends JPanel {
                         Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
                         // Performance fix - skipping colorPixels outside of the POV
                         if (start + middle / 64 * colorPixel >= -64 && start + middle / 64 * colorPixel <= 450) {
-                            paintColoredVerticalLine(g,
+                            paintColoredVerticalLine(g2d,
                                     xcor,
                                     start + middle / 64 * colorPixel,
                                     start + middle / 64 * colorPixel + oneArtificialPixelSize,
@@ -367,72 +373,72 @@ public class Raycaster extends JPanel {
         }
 
         // player
-        g.setColor(Color.white);
-        g.drawRect(
+        g2d.setColor(Color.white);
+        g2d.drawRect(
                 screenWidth
-                + (int) player.getX()
-                * pixelSize,
+                        + (int) player.getX()
+                        * pixelSize,
                 (int) player.getY()
-                * pixelSize,
+                        * pixelSize,
                 pixelSize,
                 pixelSize);
-        g.setColor(Color.GREEN);
-        g.drawLine(
+        g2d.setColor(Color.GREEN);
+        g2d.drawLine(
                 screenWidth
-                + (int) (player.getX()
-                * pixelSize),
+                        + (int) (player.getX()
+                        * pixelSize),
                 (int) (player.getY()
-                * pixelSize),
+                        * pixelSize),
                 screenWidth + (int) (player.getX()
-                * pixelSize + Math.cos(Math.toRadians(player.getAngle())) * pixelSize * fovLinesLength),
+                        * pixelSize + Math.cos(Math.toRadians(player.getAngle())) * pixelSize * fovLinesLength),
                 (int) (player.getY()
-                * pixelSize + Math.sin(Math.toRadians(player.getAngle())) * pixelSize * fovLinesLength));
+                        * pixelSize + Math.sin(Math.toRadians(player.getAngle())) * pixelSize * fovLinesLength));
         //player fov
-        g.setColor(Color.GREEN);
+        g2d.setColor(Color.GREEN);
         // -1/2 fov
-        g.drawLine(
+        g2d.drawLine(
                 screenWidth
-                + (int) (player.getX()
-                * pixelSize),
+                        + (int) (player.getX()
+                        * pixelSize),
                 (int) (player.getY()
-                * pixelSize),
+                        * pixelSize),
                 screenWidth + (int) (player.getX()
-                * pixelSize + Math.cos(Math.toRadians(player.getAngle() - config.getFov() / 2)) * pixelSize * fovLinesLength),
+                        * pixelSize + Math.cos(Math.toRadians(player.getAngle() - config.getFov() / 2)) * pixelSize * fovLinesLength),
                 (int) (player.getY()
-                * pixelSize + Math.sin(Math.toRadians(player.getAngle() - config.getFov() / 2)) * pixelSize * fovLinesLength));
+                        * pixelSize + Math.sin(Math.toRadians(player.getAngle() - config.getFov() / 2)) * pixelSize * fovLinesLength));
         // +1/2 fov
-        g.drawLine(
+        g2d.drawLine(
                 screenWidth
-                + (int) (player.getX()
-                * pixelSize),
+                        + (int) (player.getX()
+                        * pixelSize),
                 (int) (player.getY()
-                * pixelSize),
+                        * pixelSize),
                 screenWidth + (int) (player.getX()
-                * pixelSize + Math.cos(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength),
+                        * pixelSize + Math.cos(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength),
                 (int) (player.getY()
-                * pixelSize + Math.sin(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength));
+                        * pixelSize + Math.sin(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength));
         // connect fov lines
-        g.drawLine(
+        g2d.drawLine(
                 screenWidth
-                + (int) (player.getX()
-                * pixelSize + Math.cos(Math.toRadians(player.getAngle() - config.getFov() / 2)) * pixelSize * fovLinesLength),
+                        + (int) (player.getX()
+                        * pixelSize + Math.cos(Math.toRadians(player.getAngle() - config.getFov() / 2)) * pixelSize * fovLinesLength),
                 (int) (player.getY()
-                * pixelSize + Math.sin(Math.toRadians(player.getAngle() - config.getFov() / 2)) * pixelSize * fovLinesLength),
+                        * pixelSize + Math.sin(Math.toRadians(player.getAngle() - config.getFov() / 2)) * pixelSize * fovLinesLength),
                 screenWidth + (int) (player.getX()
-                * pixelSize + Math.cos(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength),
+                        * pixelSize + Math.cos(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength),
                 (int) (player.getY()
-                * pixelSize + Math.sin(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength));
+                        * pixelSize + Math.sin(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength));
 
         if (config.isMetricOn()) {
             // draw frametime
-            g.drawString(String.valueOf(
+            g2d.drawString(String.valueOf(
                     frameTimes.getLast()) + " ms", // frametime in ms
                     screenWidth + screenWidthExtension/2,
                     pixelSize*22);
 
             // draw frames per second
             if (frameTimes.getLast() != 0) {
-                g.drawString(String.valueOf(
+                g2d.drawString(String.valueOf(
                         1000/(frameTimes.getLast())) + " FPS", // frametime in ms
                         1,
                         10
@@ -440,9 +446,9 @@ public class Raycaster extends JPanel {
             }
 
             // draw frametime graph
-            g.setColor(Color.white);
+            g2d.setColor(Color.white);
             for (int frame=1;frame<frameTimes.size();frame++) {
-                g.drawLine(screenWidth+frame-1, pixelSize*20+ Math.toIntExact(frameTimes.get(frame-1)/5), screenWidth+frame, pixelSize*20+ Math.toIntExact(frameTimes.get(frame)/5));
+                g2d.drawLine(screenWidth+frame-1, pixelSize*20+ Math.toIntExact(frameTimes.get(frame-1)/5), screenWidth+frame, pixelSize*20+ Math.toIntExact(frameTimes.get(frame)/5));
             }
         }
 
@@ -452,9 +458,11 @@ public class Raycaster extends JPanel {
             if (frameTimes.size() > screenWidthExtension) {
                 frameTimes.removeFirst();
             }
-
             frame.repaint();
         }
+
+        Graphics2D g2dComponent = (Graphics2D) g;
+        g2dComponent.drawImage(bufferedImage, null, 0, 0);
     }
 
     /**
@@ -469,5 +477,7 @@ public class Raycaster extends JPanel {
         frame.setResizable(false);
         frame.setFocusable(true);
         frameTimes.add(100);
+        JPanel jpanel = new JPanel();
+        frame.add(jpanel);
     }
 }
