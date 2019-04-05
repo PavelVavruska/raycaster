@@ -32,10 +32,13 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.TreeMap;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+
+import raycaster.models.Config;
 import raycaster.models.Map;
 import raycaster.models.Player;
 
@@ -46,14 +49,21 @@ import raycaster.models.Player;
  */
 public class Raycaster extends JPanel {
 
-    static JFrame frame = new JFrame("Raycaster");
-    Player player = new Player(3, 3, 45, 90, true);
-    static int screenWidth = 640;
-    static int screenWidthExtension = 400;
-    static int screenHeight = 480;
-    int pixelSize = 20;
-    Map map = new Map();
-    BufferedImage img = null;
+    private static JFrame frame = new JFrame("Raycaster");
+
+    private static int screenWidth = 640;
+    private static int screenWidthExtension = 400;
+    private static int screenHeight = 480;
+    private static int pixelSize = 20;
+    private static Long startTime = 0L;
+    private static Long endTime = 0L;
+    private static LinkedList<Integer> frameTimes = new LinkedList<>();
+    private static  BufferedImage img = null;
+
+    private Player player = new Player(3, 3, 45);
+    private Config config = new Config(90, true, true);
+
+    private Map map = new Map();
 
     public Raycaster() {
 
@@ -91,13 +101,16 @@ public class Raycaster extends JPanel {
                             player.setY(player.getY() - Math.sin(Math.toRadians(player.getAngle())) / 10);
                             break;
                         case 'h':
-                            player.setFov(player.getFov() + 1);
+                            config.setFov(config.getFov() + 1);
                             break;
                         case 'n':
-                            player.setFov(player.getFov() - 1);
+                            config.setFov(config.getFov() - 1);
                             break;
                         case 'p':
-                            player.setPerspectiveCorrection(!player.isPerspectiveCorrection());
+                            config.setPerspectiveCorrectionOn(!config.isPerspectiveCorrectionOn());
+                            break;
+                        case 'm':
+                            config.setMetricOn(!config.isMetricOn());
                             break;
                         case 'q':
                             player.setX(player.getX() + Math.sin(Math.toRadians(player.getAngle())) / 10);
@@ -110,7 +123,6 @@ public class Raycaster extends JPanel {
                         default:
                             break;
                     }
-                    frame.repaint();
                 }
                 return false;
             }
@@ -132,6 +144,9 @@ public class Raycaster extends JPanel {
 
     @Override
     public void paint(Graphics g) {
+        endTime = startTime;
+        startTime = System.nanoTime();
+
         g.setColor(new Color(50, 50, 50)); // ceiling
         g.fillRect(screenWidth, 0, screenWidth + screenWidthExtension, screenHeight);
         g.setColor(new Color(56, 56, 56)); // ceiling
@@ -143,7 +158,7 @@ public class Raycaster extends JPanel {
         g.setColor(Color.green);
 
         double playerAngle = player.getAngle();
-        double playerAngleStart = playerAngle - player.getFov() / 2;
+        double playerAngleStart = playerAngle - config.getFov() / 2;
 
         int xx = 0;
         int yy = 0;
@@ -178,7 +193,7 @@ public class Raycaster extends JPanel {
 
         for (int xcor = 0; xcor < screenWidth; xcor = xcor + 1) {
 
-            double playerAngleActual = playerAngleStart + player.getFov() / screenWidth * xcor;
+            double playerAngleActual = playerAngleStart + config.getFov() / screenWidth * xcor;
             // degrees fixed to range 0-359
             if (playerAngleActual < 0) {
                 playerAngleActual += 360;
@@ -231,7 +246,7 @@ public class Raycaster extends JPanel {
                         double y12 = player.getY() - rayY;
                         double distanceOfTwoPoints = Math.sqrt(Math.pow(x12, 2) + Math.pow(y12, 2));
 
-                        if (player.isPerspectiveCorrection()) {
+                        if (config.isPerspectiveCorrectionOn()) {
                             perspectiveCorrectionAngle = Math.abs(rayAngle) - Math.abs(playerAngle);
                             double perspectiveCorrection = Math.cos(Math.toRadians(perspectiveCorrectionAngle)) * distanceOfTwoPoints;
                             zBuffer.put(perspectiveCorrection, objectInfo);
@@ -382,9 +397,9 @@ public class Raycaster extends JPanel {
                 (int) (player.getY()
                 * pixelSize),
                 screenWidth + (int) (player.getX()
-                * pixelSize + Math.cos(Math.toRadians(player.getAngle() - player.getFov() / 2)) * pixelSize * fovLinesLength),
+                * pixelSize + Math.cos(Math.toRadians(player.getAngle() - config.getFov() / 2)) * pixelSize * fovLinesLength),
                 (int) (player.getY()
-                * pixelSize + Math.sin(Math.toRadians(player.getAngle() - player.getFov() / 2)) * pixelSize * fovLinesLength));
+                * pixelSize + Math.sin(Math.toRadians(player.getAngle() - config.getFov() / 2)) * pixelSize * fovLinesLength));
         // +1/2 fov
         g.drawLine(
                 screenWidth
@@ -393,20 +408,57 @@ public class Raycaster extends JPanel {
                 (int) (player.getY()
                 * pixelSize),
                 screenWidth + (int) (player.getX()
-                * pixelSize + Math.cos(Math.toRadians(player.getAngle() + player.getFov() / 2)) * pixelSize * fovLinesLength),
+                * pixelSize + Math.cos(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength),
                 (int) (player.getY()
-                * pixelSize + Math.sin(Math.toRadians(player.getAngle() + player.getFov() / 2)) * pixelSize * fovLinesLength));
+                * pixelSize + Math.sin(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength));
         // connect fov lines
         g.drawLine(
                 screenWidth
                 + (int) (player.getX()
-                * pixelSize + Math.cos(Math.toRadians(player.getAngle() - player.getFov() / 2)) * pixelSize * fovLinesLength),
+                * pixelSize + Math.cos(Math.toRadians(player.getAngle() - config.getFov() / 2)) * pixelSize * fovLinesLength),
                 (int) (player.getY()
-                * pixelSize + Math.sin(Math.toRadians(player.getAngle() - player.getFov() / 2)) * pixelSize * fovLinesLength),
+                * pixelSize + Math.sin(Math.toRadians(player.getAngle() - config.getFov() / 2)) * pixelSize * fovLinesLength),
                 screenWidth + (int) (player.getX()
-                * pixelSize + Math.cos(Math.toRadians(player.getAngle() + player.getFov() / 2)) * pixelSize * fovLinesLength),
+                * pixelSize + Math.cos(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength),
                 (int) (player.getY()
-                * pixelSize + Math.sin(Math.toRadians(player.getAngle() + player.getFov() / 2)) * pixelSize * fovLinesLength));
+                * pixelSize + Math.sin(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength));
+
+        if (config.isMetricOn()) {
+            // draw frametime
+            g.drawString(String.valueOf(
+                    frameTimes.getLast()) + " ms", // frametime in ms
+                    screenWidth + screenWidthExtension/2,
+                    pixelSize*22);
+
+            // draw frames per second
+            if (frameTimes.getLast() != 0) {
+                g.drawString(String.valueOf(
+                        1000/(frameTimes.getLast())) + " FPS", // frametime in ms
+                        1,
+                        10
+                );
+            }
+
+            // draw frametime graph
+            g.setColor(Color.white);
+            for (int frame=1;frame<frameTimes.size();frame++) {
+                g.drawLine(screenWidth+frame-1, pixelSize*20+ Math.toIntExact(frameTimes.get(frame-1)/5), screenWidth+frame, pixelSize*20+ Math.toIntExact(frameTimes.get(frame)/5));
+            }
+        }
+
+        if (endTime != 0L) {
+            int millisElapsed = java.lang.Math.toIntExact((startTime - endTime)/1000/1000);
+            frameTimes.add(millisElapsed);
+            if (frameTimes.size() > screenWidthExtension) {
+                frameTimes.removeFirst();
+            }
+
+            if (millisElapsed <= 500 && millisElapsed > 0) {
+                frame.repaint(500-millisElapsed);
+            }
+
+            frame.repaint();
+        }
     }
 
     /**
@@ -420,5 +472,6 @@ public class Raycaster extends JPanel {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);
         frame.setFocusable(true);
+        frameTimes.add(100);
     }
 }
