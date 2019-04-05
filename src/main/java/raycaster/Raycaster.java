@@ -453,10 +453,6 @@ public class Raycaster extends JPanel {
                 frameTimes.removeFirst();
             }
 
-            if (millisElapsed <= 500 && millisElapsed > 0) {
-                frame.repaint(500-millisElapsed);
-            }
-
             frame.repaint();
         }
     }
