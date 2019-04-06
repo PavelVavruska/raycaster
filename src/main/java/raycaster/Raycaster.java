@@ -81,26 +81,18 @@ public class Raycaster extends JPanel {
                 if (e.getID() == KeyEvent.KEY_TYPED) {
                     switch (e.getKeyChar()) {
                         case 'd':
-                            if (player.getAngle() + 10D >= 360D) {
-                                player.setAngle(0D);
-                            } else {
-                                player.setAngle(player.getAngle() + 10D);
-                            }
+                            player.setVelocityAngle(player.getVelocityAngle()+1D);
                             break;
                         case 'a':
-                            if (player.getAngle() - 10D < 0D) {
-                                player.setAngle(350D);
-                            } else {
-                                player.setAngle(player.getAngle() - 10D);
-                            }
+                            player.setVelocityAngle(player.getVelocityAngle()-1D);
                             break;
                         case 'w':
-                            player.setX(player.getX() + Math.cos(Math.toRadians(player.getAngle())) / 10);
-                            player.setY(player.getY() + Math.sin(Math.toRadians(player.getAngle())) / 10);
+                            player.setVelocityX(player.getVelocityX() + Math.cos(Math.toRadians(player.getAngle())) / 100);
+                            player.setVelocityY(player.getVelocityY() + Math.sin(Math.toRadians(player.getAngle())) / 100);
                             break;
                         case 's':
-                            player.setX(player.getX() - Math.cos(Math.toRadians(player.getAngle())) / 10);
-                            player.setY(player.getY() - Math.sin(Math.toRadians(player.getAngle())) / 10);
+                            player.setVelocityX(player.getVelocityX() - Math.cos(Math.toRadians(player.getAngle())) / 100);
+                            player.setVelocityY(player.getVelocityY() - Math.sin(Math.toRadians(player.getAngle())) / 100);
                             break;
                         case 'h':
                             config.setFov(config.getFov() + 1);
@@ -115,12 +107,16 @@ public class Raycaster extends JPanel {
                             config.setMetricOn(!config.isMetricOn());
                             break;
                         case 'q':
-                            player.setX(player.getX() + Math.sin(Math.toRadians(player.getAngle())) / 10);
-                            player.setY(player.getY() + Math.cos(Math.toRadians(player.getAngle())) / 10);
+                            player.setAngle(player.getAngle() - 90D);
+                            player.setVelocityX(player.getVelocityX() + Math.cos(Math.toRadians(player.getAngle())) / 100);
+                            player.setVelocityY(player.getVelocityY() + Math.sin(Math.toRadians(player.getAngle())) / 100);
+                            player.setAngle(player.getAngle() + 90D);
                             break;
                         case 'e':
-                            player.setX(player.getX() - Math.sin(Math.toRadians(player.getAngle())) / 10);
-                            player.setY(player.getY() - Math.cos(Math.toRadians(player.getAngle())) / 10);
+                            player.setAngle(player.getAngle() + 90D);
+                            player.setVelocityX(player.getVelocityX() + Math.cos(Math.toRadians(player.getAngle())) / 100);
+                            player.setVelocityY(player.getVelocityY() + Math.sin(Math.toRadians(player.getAngle())) / 100);
+                            player.setAngle(player.getAngle() - 90D);
                             break;
                         default:
                             break;
@@ -458,6 +454,25 @@ public class Raycaster extends JPanel {
             if (frameTimes.size() > screenWidthExtension) {
                 frameTimes.removeFirst();
             }
+
+            // forward - backward
+            player.setX(player.getX()+player.getVelocityX());
+            player.setVelocityX(player.getVelocityX()*0.9);
+            player.setY(player.getY()+player.getVelocityY());
+            player.setVelocityY(player.getVelocityY()*0.9);
+
+            // turning left or right
+            player.setAngle(player.getAngle()+player.getVelocityAngle());
+            player.setVelocityAngle(player.getVelocityAngle()*0.9);
+
+            // keeping turning angle in range of 0-360
+            if (player.getAngle() >= 360D) {
+                player.setAngle(player.getAngle() - 360D);
+            }
+            if (player.getAngle() < 0D) {
+                player.setAngle(player.getAngle() + 360D);
+            }
+
             frame.repaint();
         }
 

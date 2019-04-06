@@ -32,6 +32,33 @@ public class Player {
     private double x;
     private double y;
     private double angle;
+    private double velocityX = 0D;
+    private double velocityY = 0D;
+    private double velocityAngle = 0D;
+
+    public double getVelocityX() {
+        return velocityX;
+    }
+
+    public void setVelocityX(double velocityX) {
+        this.velocityX = velocityX;
+    }
+
+    public double getVelocityY() {
+        return velocityY;
+    }
+
+    public void setVelocityY(double velocityY) {
+        this.velocityY = velocityY;
+    }
+
+    public double getVelocityAngle() {
+        return velocityAngle;
+    }
+
+    public void setVelocityAngle(double velocityAngle) {
+        this.velocityAngle = velocityAngle;
+    }
 
     public Player(double x, double y, double angle) {
         this.x = x;
