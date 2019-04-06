@@ -67,8 +67,15 @@ public class Raycaster extends JPanel {
 
     private Map map = new Map();
 
-    public Raycaster() {
+    private static int cores = Runtime.getRuntime().availableProcessors();
 
+    private static Thread[] threads = new Thread[cores];
+    private static BufferedImage[] bufferedImageCore = new BufferedImage[cores];
+
+    private static Graphics2D[] g2dCore = new Graphics2D[cores];
+
+    public Raycaster() {
+        System.out.println("Number of cores:" + Integer.toString(cores));
         try {
             img = ImageIO.read(new File("static/textures.png"));
         } catch (IOException e) {
@@ -193,72 +200,81 @@ public class Raycaster extends JPanel {
             yy++;
         }
 
-        for (int xcor = 0; xcor < screenWidth; xcor = xcor + 1) {
+        for (int numThreads = 0; numThreads < cores; numThreads++) {
+            int threadStartCor = screenWidth/cores*numThreads;
+            int threadEndCor = screenWidth/cores;
+            bufferedImageCore[numThreads] = new BufferedImage(screenWidth/cores, screenHeight, BufferedImage.TYPE_INT_ARGB);
+            g2dCore[numThreads] = bufferedImageCore[numThreads].createGraphics();
 
-            double playerAngleActual = playerAngleStart + config.getFov() / screenWidth * xcor;
-            // degrees fixed to range 0-359
-            if (playerAngleActual < 0) {
-                playerAngleActual += 360;
-            }
-
-            if (playerAngleActual >= 360) {
-                playerAngleActual -= 360;
-            }
-            double rayAngle = playerAngleActual;
-
-            double rayY = player.getY(); // start position of ray on Y axis
-            double rayX = player.getX(); // start position of ray on X axis
-            TreeMap<Double, Double> zBuffer = new TreeMap(Collections.reverseOrder()); // Double = how far, Integer = what object type
-
-            double lengthDeltaX;
-            double lengthDeltaY;
-            double toTileEdgeAngle = 0D;
-            double perspectiveCorrectionAngle = 0D;
-
-            double lastRayX = 0D;
-            double lastRayY = 0D;
-            int rayTimeToDie = 50;
-
-            while (rayX > 0 && rayY > 0 && rayX < map.getSizeX() && rayY < map.getSizeY() && rayTimeToDie > 0) {
-                rayTimeToDie--;
-
-                if (lastRayX == rayX && lastRayY == rayY) {
-                    break;
-                }
-                int checkX = (int) rayX;
-
-                if (rayAngle > 90 && rayAngle < 270) {
-                    checkX = (int) Math.ceil(rayX - 1);
-                }
-                int checkY = (int) rayY;
-
-                if (rayAngle > 180 && rayAngle < 360) {
-                    checkY = (int) Math.ceil(rayY - 1);
-                }
-
-                if (checkX >= 0 && checkY >= 0 && checkX < map.getSizeX() && checkY < map.getSizeY()) {
-                    int objectOnTheMap = map.getMap()[(int) checkY][(int) checkX];
-                    double offset = (rayX - checkX) / 2 + (rayY - checkY) / 2;
-
-                    Double objectInfo = objectOnTheMap + offset;
-
-                    if (objectOnTheMap != 0) // read the map and save it to zbuffer
-                    {
-                        double x12 = player.getX() - rayX;
-                        double y12 = player.getY() - rayY;
-                        double distanceOfTwoPoints = Math.sqrt(Math.pow(x12, 2) + Math.pow(y12, 2));
-
-                        if (config.isPerspectiveCorrectionOn()) {
-                            perspectiveCorrectionAngle = Math.abs(rayAngle) - Math.abs(playerAngle);
-                            double perspectiveCorrection = Math.cos(Math.toRadians(perspectiveCorrectionAngle)) * distanceOfTwoPoints;
-                            zBuffer.put(perspectiveCorrection, objectInfo);
-                        } else {
-                            zBuffer.put(distanceOfTwoPoints, objectInfo);
+            int finalNumThreads = numThreads;
+            threads[numThreads] = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    for (int xcor = threadStartCor; xcor < threadStartCor+threadEndCor; xcor = xcor + 1) {
+                        double playerAngleActual = playerAngleStart + config.getFov() / screenWidth * xcor;
+                        // degrees fixed to range 0-359
+                        if (playerAngleActual < 0) {
+                            playerAngleActual += 360;
                         }
 
-                        break;
-                    }
-                }
+                        if (playerAngleActual >= 360) {
+                            playerAngleActual -= 360;
+                        }
+                        double rayAngle = playerAngleActual;
+
+                        double rayY = player.getY(); // start position of ray on Y axis
+                        double rayX = player.getX(); // start position of ray on X axis
+                        TreeMap<Double, Double> zBuffer = new TreeMap(Collections.reverseOrder()); // Double = how far, Integer = what object type
+
+                        double lengthDeltaX;
+                        double lengthDeltaY;
+                        double toTileEdgeAngle = 0D;
+                        double perspectiveCorrectionAngle = 0D;
+
+                        double lastRayX = 0D;
+                        double lastRayY = 0D;
+                        int rayTimeToDie = 50;
+
+                        while (rayX > 0 && rayY > 0 && rayX < map.getSizeX() && rayY < map.getSizeY() && rayTimeToDie > 0) {
+                            rayTimeToDie--;
+
+                            if (lastRayX == rayX && lastRayY == rayY) {
+                                break;
+                            }
+                            int checkX = (int) rayX;
+
+                            if (rayAngle > 90 && rayAngle < 270) {
+                                checkX = (int) Math.ceil(rayX - 1);
+                            }
+                            int checkY = (int) rayY;
+
+                            if (rayAngle > 180 && rayAngle < 360) {
+                                checkY = (int) Math.ceil(rayY - 1);
+                            }
+
+                            if (checkX >= 0 && checkY >= 0 && checkX < map.getSizeX() && checkY < map.getSizeY()) {
+                                int objectOnTheMap = map.getMap()[(int) checkY][(int) checkX];
+                                double offset = (rayX - checkX) / 2 + (rayY - checkY) / 2;
+
+                                Double objectInfo = objectOnTheMap + offset;
+
+                                if (objectOnTheMap != 0) // read the map and save it to zbuffer
+                                {
+                                    double x12 = player.getX() - rayX;
+                                    double y12 = player.getY() - rayY;
+                                    double distanceOfTwoPoints = Math.sqrt(Math.pow(x12, 2) + Math.pow(y12, 2));
+
+                                    if (config.isPerspectiveCorrectionOn()) {
+                                        perspectiveCorrectionAngle = Math.abs(rayAngle) - Math.abs(playerAngle);
+                                        double perspectiveCorrection = Math.cos(Math.toRadians(perspectiveCorrectionAngle)) * distanceOfTwoPoints;
+                                        zBuffer.put(perspectiveCorrection, objectInfo);
+                                    } else {
+                                        zBuffer.put(distanceOfTwoPoints, objectInfo);
+                                    }
+
+                                    break;
+                                }
+                            }
 
                 /*
                 4 QUADRANTS:
@@ -267,105 +283,122 @@ public class Raycaster extends JPanel {
                 3 180-270
                 4 270-360
                  */
-                if (rayAngle >= 0 && rayAngle <= 90) {
-                    lengthDeltaX = 1 + (int) rayX - rayX;
-                    lengthDeltaY = 1 + (int) rayY - rayY;
+                            if (rayAngle >= 0 && rayAngle <= 90) {
+                                lengthDeltaX = 1 + (int) rayX - rayX;
+                                lengthDeltaY = 1 + (int) rayY - rayY;
 
-                    toTileEdgeAngle = Math.toDegrees(Math.atan(lengthDeltaY / lengthDeltaX));
+                                toTileEdgeAngle = Math.toDegrees(Math.atan(lengthDeltaY / lengthDeltaX));
 
-                    if (toTileEdgeAngle >= rayAngle) {
-                        rayX = rayX + lengthDeltaX;
-                        rayY += Math.tan(Math.toRadians(rayAngle)) * lengthDeltaX;
-                    } else {
-                        rayX += lengthDeltaY / Math.tan(Math.toRadians(rayAngle));
-                        rayY = rayY + lengthDeltaY;
-                    }
+                                if (toTileEdgeAngle >= rayAngle) {
+                                    rayX = rayX + lengthDeltaX;
+                                    rayY += Math.tan(Math.toRadians(rayAngle)) * lengthDeltaX;
+                                } else {
+                                    rayX += lengthDeltaY / Math.tan(Math.toRadians(rayAngle));
+                                    rayY = rayY + lengthDeltaY;
+                                }
 
-                } else if (rayAngle > 90 && rayAngle < 180) {
-                    lengthDeltaX = 1 - (int) Math.ceil(rayX) + rayX;
-                    lengthDeltaY = 1 + (int) rayY - rayY;
-                    toTileEdgeAngle = 90 + Math.toDegrees(Math.atan(lengthDeltaX / lengthDeltaY));
+                            } else if (rayAngle > 90 && rayAngle < 180) {
+                                lengthDeltaX = 1 - (int) Math.ceil(rayX) + rayX;
+                                lengthDeltaY = 1 + (int) rayY - rayY;
+                                toTileEdgeAngle = 90 + Math.toDegrees(Math.atan(lengthDeltaX / lengthDeltaY));
 
-                    if (toTileEdgeAngle <= rayAngle) {
-                        rayX = rayX - lengthDeltaX;
-                        rayY += lengthDeltaX / Math.tan(Math.toRadians(rayAngle - 90));
-                    } else {
-                        rayX -= Math.tan(Math.toRadians(rayAngle - 90)) * lengthDeltaY;
-                        rayY = rayY + lengthDeltaY;
-                    }
+                                if (toTileEdgeAngle <= rayAngle) {
+                                    rayX = rayX - lengthDeltaX;
+                                    rayY += lengthDeltaX / Math.tan(Math.toRadians(rayAngle - 90));
+                                } else {
+                                    rayX -= Math.tan(Math.toRadians(rayAngle - 90)) * lengthDeltaY;
+                                    rayY = rayY + lengthDeltaY;
+                                }
 
-                } else if (rayAngle >= 180 && rayAngle < 270) {
-                    lengthDeltaX = 1 - (int) Math.ceil(rayX) + rayX;
-                    lengthDeltaY = 1 - (int) Math.ceil(rayY) + rayY;
-                    toTileEdgeAngle = 180 + Math.toDegrees(Math.atan(lengthDeltaY / lengthDeltaX));
+                            } else if (rayAngle >= 180 && rayAngle < 270) {
+                                lengthDeltaX = 1 - (int) Math.ceil(rayX) + rayX;
+                                lengthDeltaY = 1 - (int) Math.ceil(rayY) + rayY;
+                                toTileEdgeAngle = 180 + Math.toDegrees(Math.atan(lengthDeltaY / lengthDeltaX));
 
-                    if (toTileEdgeAngle > rayAngle) {
-                        rayX = rayX - lengthDeltaX;
-                        rayY -= Math.tan(Math.toRadians(rayAngle - 180)) * lengthDeltaX;
-                    } else {
-                        rayX -= lengthDeltaY / Math.tan(Math.toRadians(rayAngle - 180));
-                        rayY = rayY - lengthDeltaY;
-                    }
+                                if (toTileEdgeAngle > rayAngle) {
+                                    rayX = rayX - lengthDeltaX;
+                                    rayY -= Math.tan(Math.toRadians(rayAngle - 180)) * lengthDeltaX;
+                                } else {
+                                    rayX -= lengthDeltaY / Math.tan(Math.toRadians(rayAngle - 180));
+                                    rayY = rayY - lengthDeltaY;
+                                }
 
-                } else if (rayAngle >= 270 && rayAngle < 360) {
-                    lengthDeltaX = 1 + (int) rayX - rayX;
-                    lengthDeltaY = 1 - (int) Math.ceil(rayY) + rayY;
-                    toTileEdgeAngle = 270 + Math.toDegrees(Math.atan(lengthDeltaX / lengthDeltaY));
+                            } else if (rayAngle >= 270 && rayAngle < 360) {
+                                lengthDeltaX = 1 + (int) rayX - rayX;
+                                lengthDeltaY = 1 - (int) Math.ceil(rayY) + rayY;
+                                toTileEdgeAngle = 270 + Math.toDegrees(Math.atan(lengthDeltaX / lengthDeltaY));
 
-                    if (toTileEdgeAngle > rayAngle) {
-                        rayX += Math.tan(Math.toRadians(rayAngle - 270)) * lengthDeltaY;
-                        rayY = rayY - lengthDeltaY;
-                    } else {
-                        rayX = rayX + lengthDeltaX;
-                        rayY -= lengthDeltaX / Math.tan(Math.toRadians(rayAngle - 270));
+                                if (toTileEdgeAngle > rayAngle) {
+                                    rayX += Math.tan(Math.toRadians(rayAngle - 270)) * lengthDeltaY;
+                                    rayY = rayY - lengthDeltaY;
+                                } else {
+                                    rayX = rayX + lengthDeltaX;
+                                    rayY -= lengthDeltaX / Math.tan(Math.toRadians(rayAngle - 270));
+                                }
+                            }
+                            paintColoredDotInMenu(g2d, rayX, rayY, Color.green);
+                            lastRayX = rayY;
+                            lastRayY = rayX;
+                        }
+
+                        if (!zBuffer.isEmpty()) {
+
+                            for (java.util.Map.Entry<Double, Double> entry : zBuffer.entrySet()) {
+
+                                // Actual line by line rendering of the visible object
+                                int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
+                                int end = (int) (screenHeight / 2 + screenHeight / (entry.getKey() * 2));
+                                double middle = 2 * screenHeight / (entry.getKey() * 2);
+
+                                double oneArtificialPixelSize = middle / 64;
+
+                                for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
+                                    int colorPixel = (int) (verticalPixel / oneArtificialPixelSize);
+
+                                    if (colorPixel > 63) {
+                                        colorPixel = 63;
+                                    }
+
+                                    int xCorTexture = (int) (entry.getValue() * 64 - 64);
+
+                                    if (xCorTexture <= 1) {
+                                        xCorTexture = 1;
+                                    }
+
+                                    Color imgColor = new Color(img.getRGB(xCorTexture, colorPixel));
+                                    int red = (int) (imgColor.getRed() - entry.getKey() * 5);
+                                    int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
+                                    int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
+
+                                    Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
+                                    // Performance fix - skipping colorPixels outside of the POV
+                                    if (start + middle / 64 * colorPixel >= -64 && start + middle / 64 * colorPixel <= 450) {
+                                        paintColoredVerticalLine(g2dCore[finalNumThreads],
+                                                xcor-threadStartCor,
+                                                start + middle / 64 * colorPixel,
+                                                start + middle / 64 * colorPixel + oneArtificialPixelSize,
+                                                resultColor);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-                paintColoredDotInMenu(g2d, rayX, rayY, Color.green);
-                lastRayX = rayY;
-                lastRayY = rayX;
+            });
+        }
+        for (int numThreads = 0; numThreads < cores; numThreads++) {
+            threads[numThreads].start();
+        }
+
+        for (int numThreads = 0; numThreads < cores; numThreads++) {
+            try {
+                threads[numThreads].join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-
-            if (!zBuffer.isEmpty()) {
-
-                for (java.util.Map.Entry<Double, Double> entry : zBuffer.entrySet()) {
-
-                    // Actual line by line rendering of the visible object
-                    int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
-                    int end = (int) (screenHeight / 2 + screenHeight / (entry.getKey() * 2));
-                    double middle = 2 * screenHeight / (entry.getKey() * 2);
-
-                    double oneArtificialPixelSize = middle / 64;
-
-                    for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
-                        int colorPixel = (int) (verticalPixel / oneArtificialPixelSize);
-
-                        if (colorPixel > 63) {
-                            colorPixel = 63;
-                        }
-
-                        int xCorTexture = (int) (entry.getValue() * 64 - 64);
-
-                        if (xCorTexture <= 1) {
-                            xCorTexture = 1;
-                        }
-
-                        Color imgColor = new Color(img.getRGB(xCorTexture, colorPixel));
-                        int red = (int) (imgColor.getRed() - entry.getKey() * 5);
-                        int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
-                        int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
-
-                        Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
-                        // Performance fix - skipping colorPixels outside of the POV
-                        if (start + middle / 64 * colorPixel >= -64 && start + middle / 64 * colorPixel <= 450) {
-                            paintColoredVerticalLine(g2d,
-                                    xcor,
-                                    start + middle / 64 * colorPixel,
-                                    start + middle / 64 * colorPixel + oneArtificialPixelSize,
-                                    resultColor);
-                        }
-                    }
-                }
-            }
+            int threadStartCor = screenWidth/cores*numThreads;
+            g2dCore[numThreads].dispose();
+            g2d.drawImage(bufferedImageCore[numThreads],null, threadStartCor, 0);
         }
 
         // player
