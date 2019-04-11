@@ -33,6 +33,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.TreeMap;
 import javax.imageio.ImageIO;
@@ -175,19 +176,27 @@ public class Raycaster extends JPanel {
         g2d.setColor(Color.black);
         for (int[] y : map.getMap()) {
             for (int x : y) {
-                if (x > 0) {
+                if (x >= 0) {
                     switch (x) {
+                        case 0:
                         case 1:
+                        case 2:
+                        case 3:
+                        case 4:
+                        case 5:
+                        case 6:
+                        case 7:
+                        case 8:
+                            g2d.setColor(Color.orange);
+                            break;
+                        case 10:
                             g2d.setColor(Color.black);
                             break;
-                        case 2:
+                        case 12:
                             g2d.setColor(Color.cyan);
                             break;
-                        case 3:
+                        case 14:
                             g2d.setColor(Color.lightGray);
-                            break;
-                        case 4:
-                            g2d.setColor(Color.orange);
                             break;
                         default:
                             break;
@@ -225,6 +234,7 @@ public class Raycaster extends JPanel {
                         double rayY = player.getY(); // start position of ray on Y axis
                         double rayX = player.getX(); // start position of ray on X axis
                         TreeMap<Double, Double> zBuffer = new TreeMap(Collections.reverseOrder()); // Double = how far, Integer = what object type
+                        TreeMap<Double, Double> zBufferObject = new TreeMap(Collections.reverseOrder()); // Double = how far, Integer = what object type
 
                         double lengthDeltaX;
                         double lengthDeltaY;
@@ -254,25 +264,36 @@ public class Raycaster extends JPanel {
 
                             if (checkX >= 0 && checkY >= 0 && checkX < map.getSizeX() && checkY < map.getSizeY()) {
                                 int objectOnTheMap = map.getMap()[(int) checkY][(int) checkX];
-                                double offset = (rayX - checkX) / 2 + (rayY - checkY) / 2;
+                                double offset = ((rayX - checkX) + (rayY - checkY));
+                                /*if (offset > 1) {
+                                    offset=0;
+                                }*/
 
                                 Double objectInfo = objectOnTheMap + offset;
 
-                                if (objectOnTheMap != 0) // read the map and save it to zbuffer
+                                if (objectOnTheMap != -1) // read the map and save it to zbuffer
                                 {
                                     double x12 = player.getX() - rayX;
                                     double y12 = player.getY() - rayY;
                                     double distanceOfTwoPoints = Math.sqrt(Math.pow(x12, 2) + Math.pow(y12, 2));
-
-                                    if (config.isPerspectiveCorrectionOn()) {
-                                        perspectiveCorrectionAngle = Math.abs(rayAngle) - Math.abs(playerAngle);
-                                        double perspectiveCorrection = Math.cos(Math.toRadians(perspectiveCorrectionAngle)) * distanceOfTwoPoints;
-                                        zBuffer.put(perspectiveCorrection, objectInfo);
-                                    } else {
-                                        zBuffer.put(distanceOfTwoPoints, objectInfo);
+                                    if (objectOnTheMap >= 10) { // solid walls
+                                        if (config.isPerspectiveCorrectionOn()) {
+                                            perspectiveCorrectionAngle = Math.abs(rayAngle) - Math.abs(playerAngle);
+                                            double perspectiveCorrection = Math.cos(Math.toRadians(perspectiveCorrectionAngle)) * distanceOfTwoPoints;
+                                            zBuffer.put(perspectiveCorrection, objectInfo - 10);
+                                        } else {
+                                            zBuffer.put(distanceOfTwoPoints, objectInfo - 10);
+                                        }
+                                        break;
+                                    } else { // transparent walls
+                                        if (config.isPerspectiveCorrectionOn()) {
+                                            perspectiveCorrectionAngle = Math.abs(rayAngle) - Math.abs(playerAngle);
+                                            double perspectiveCorrection = Math.cos(Math.toRadians(perspectiveCorrectionAngle)) * distanceOfTwoPoints;
+                                            zBufferObject.put(perspectiveCorrection, objectInfo);
+                                        } else {
+                                            zBufferObject.put(distanceOfTwoPoints, objectInfo);
+                                        }
                                     }
-
-                                    break;
                                 }
                             }
 
@@ -351,7 +372,19 @@ public class Raycaster extends JPanel {
                                 double middle = 2 * screenHeight / (entry.getKey() * 2);
 
                                 double oneArtificialPixelSize = middle / 64;
-
+                                if (oneArtificialPixelSize > 50) {
+                                    paintColoredVerticalLine(g2dCore[finalNumThreads],
+                                            xcor-threadStartCor,
+                                            0,
+                                            screenHeight/2,
+                                            new Color(img.getRGB((int) (entry.getValue() * 64 - 32), 16)));
+                                    paintColoredVerticalLine(g2dCore[finalNumThreads],
+                                            xcor-threadStartCor,
+                                            screenHeight/2,
+                                            screenHeight,
+                                            new Color(img.getRGB((int) (entry.getValue() * 64 - 32), 48)));
+                                    break;
+                                }
                                 for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
                                     int colorPixel = (int) (verticalPixel / oneArtificialPixelSize);
 
@@ -359,13 +392,13 @@ public class Raycaster extends JPanel {
                                         colorPixel = 63;
                                     }
 
-                                    int xCorTexture = (int) (entry.getValue() * 64 - 64);
+                                    int xCorTexture = (int) (entry.getValue() * 64);
 
                                     if (xCorTexture <= 1) {
                                         xCorTexture = 1;
                                     }
 
-                                    Color imgColor = new Color(img.getRGB(xCorTexture, colorPixel));
+                                    Color imgColor = new Color(img.getRGB(xCorTexture, 64 +colorPixel));
                                     int red = (int) (imgColor.getRed() - entry.getKey() * 5);
                                     int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
                                     int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
@@ -379,6 +412,52 @@ public class Raycaster extends JPanel {
                                                 start + middle / 64 * colorPixel + oneArtificialPixelSize,
                                                 resultColor);
                                     }
+                                }
+                            }
+                        }
+
+                        if (!zBufferObject.isEmpty()) {
+
+                            for (java.util.Map.Entry<Double, Double> entry : zBufferObject.entrySet()) {
+
+                                // Actual line by line rendering of the visible object
+                                int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
+                                int end = (int) (screenHeight / 2 + screenHeight / (entry.getKey() * 2));
+                                double middle = 2 * screenHeight / (entry.getKey() * 2);
+
+                                double oneArtificialPixelSize = middle / 64;
+
+                                for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
+                                    int colorPixel = (int) (verticalPixel / oneArtificialPixelSize);
+
+                                    if (colorPixel > 63) {
+                                        colorPixel = 63;
+                                    }
+
+                                    int xCorTexture = (int) (entry.getValue() * 64);
+
+                                    if (xCorTexture <= 1) {
+                                        xCorTexture = 1;
+                                    }
+
+                                    Color imgColor = new Color(img.getRGB(xCorTexture, colorPixel));
+                                    if (imgColor.getGreen() >= 1) {
+                                        int red = (int) (imgColor.getRed() - entry.getKey() * 5);
+                                        int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
+                                        int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
+
+                                        Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
+
+                                        // Performance fix - skipping colorPixels outside of the POV
+                                        if (start + middle / 64 * colorPixel >= -64 && start + middle / 64 * colorPixel <= 450) {
+                                            paintColoredVerticalLine(g2dCore[finalNumThreads],
+                                                    xcor-threadStartCor,
+                                                    start + middle / 64 * colorPixel,
+                                                    start + middle / 64 * colorPixel + oneArtificialPixelSize,
+                                                    resultColor);
+                                        }
+                                    }
+
                                 }
                             }
                         }
@@ -474,6 +553,16 @@ public class Raycaster extends JPanel {
                 );
             }
 
+            // draw player info
+            g2d.drawString(String.format( "%.2f ° angle",
+                    player.getAngle()), // frametime in ms
+                    20,
+                    pixelSize*20);
+            g2d.drawString(String.format("X: %.2f Y: %.2f",
+                    player.getX(), player.getY()), // frametime in ms
+                    20,
+                    pixelSize*21);
+
             // draw frametime graph
             g2d.setColor(Color.white);
             for (int frame=1;frame<frameTimes.size();frame++) {
@@ -489,10 +578,73 @@ public class Raycaster extends JPanel {
             }
 
             // forward - backward
-            player.setX(player.getX()+player.getVelocityX());
-            player.setVelocityX(player.getVelocityX()*0.9);
-            player.setY(player.getY()+player.getVelocityY());
-            player.setVelocityY(player.getVelocityY()*0.9);
+
+            //collison
+            int checkX = (int) (player.getX()+player.getVelocityX());
+            int checkY = (int) (player.getY()+player.getVelocityY());
+
+            if (player.getAngle() > 90 && player.getAngle() < 270) {
+                checkX = (int) Math.ceil(player.getX()+player.getVelocityX() - 1);
+            }
+
+            if (player.getAngle() > 180 && player.getAngle() < 360) {
+                checkY = (int) Math.ceil(player.getY()+player.getVelocityY() - 1);
+            }
+
+            if (checkX >= 1 && checkY >= 1 && checkX < map.getSizeX() -1  && checkY < map.getSizeY()-1) {
+                // 0-90
+                /*if (playerAngle >= 0 && playerAngle < 90) {
+                    boolean collisionOnCorX = map.getMap()[(int) player.getY()][ checkX] > 0;
+                    boolean collisionOnCorY = map.getMap()[checkY][(int) player.getX()] > 0;
+                }*/
+                // 90-180
+
+
+                // 180-270
+
+                // 270-360
+
+                int checkBothX = checkX + (checkX - (int) player.getX());
+                int checkBothY = checkY + (checkY - (int) player.getY());
+                boolean collisionOnCorX = (map.getMap()[(int) player.getY()][checkBothX] >= 10
+                                     ) || (map.getMap()[(int) player.getY() - 1][checkBothX] >= 10
+                                     ) || (map.getMap()[(int) player.getY() + 1][checkBothX] >= 10);
+                boolean collisionOnCorY = (map.getMap()[checkBothY][(int) player.getX()] >= 10
+                                     ) || (map.getMap()[checkBothY][(int) player.getX() - 1] >= 10
+                                     ) || (map.getMap()[checkBothY][(int) player.getX() + 1] >= 10);
+
+
+
+
+                player.setX(player.getX()+player.getVelocityX());
+                player.setY(player.getY()+player.getVelocityY());
+
+                if (collisionOnCorX) {
+                    player.setX(player.getX()-player.getVelocityX());
+                    player.setVelocityX(0);
+                    if (!collisionOnCorY) {
+                        player.setVelocityY(player.getVelocityY()*0.9);
+                    }
+                } else {
+                    player.setVelocityX(player.getVelocityX()*0.9);
+                }
+                if (collisionOnCorY) {
+                    player.setY(player.getY()-player.getVelocityY());
+                    player.setVelocityY(0);
+                    if (!collisionOnCorX) {
+                        player.setVelocityX(player.getVelocityX()*0.9);
+                    }
+                } else {
+                    player.setVelocityY(player.getVelocityY()*0.9);
+                }
+
+
+
+
+            }
+            //if (map.getMap()[(int) checkY][(int) checkX];[player.getX()+player.getVelocityX()])
+
+
 
             // turning left or right
             player.setAngle(player.getAngle()+player.getVelocityAngle());
