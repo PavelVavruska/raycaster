@@ -162,7 +162,6 @@ public class Raycaster extends JPanel {
         g2d.setColor(new Color(112, 112, 112)); // floor
         g2d.fillRect(0, screenHeight / 2, screenWidth, screenHeight);
 
-        int fovLinesLength = 12;
         g2d.setColor(Color.green);
 
         double playerAngle = player.getAngle();
@@ -231,7 +230,7 @@ public class Raycaster extends JPanel {
 
                         double rayY = player.getY(); // start position of ray on Y axis
                         double rayX = player.getX(); // start position of ray on X axis
-                        TreeMap<Double, Double> zBuffer = new TreeMap(Collections.reverseOrder()); // Double = how far, Integer = what object type
+                        TreeMap<Double, Double> zBufferWall = new TreeMap(Collections.reverseOrder()); // Double = how far, Integer = what object type
                         TreeMap<Double, Double> zBufferObject = new TreeMap(Collections.reverseOrder()); // Double = how far, Integer = what object type
 
                         double lengthDeltaX;
@@ -278,9 +277,9 @@ public class Raycaster extends JPanel {
                                         if (config.isPerspectiveCorrectionOn()) {
                                             perspectiveCorrectionAngle = Math.abs(rayAngle) - Math.abs(playerAngle);
                                             double perspectiveCorrection = Math.cos(Math.toRadians(perspectiveCorrectionAngle)) * distanceOfTwoPoints;
-                                            zBuffer.put(perspectiveCorrection, objectInfo - 10);
+                                            zBufferWall.put(perspectiveCorrection, objectInfo - 10);
                                         } else {
-                                            zBuffer.put(distanceOfTwoPoints, objectInfo - 10);
+                                            zBufferWall.put(distanceOfTwoPoints, objectInfo - 10);
                                         }
                                         break;
                                     } else { // transparent walls
@@ -359,104 +358,8 @@ public class Raycaster extends JPanel {
                             lastRayX = rayY;
                             lastRayY = rayX;
                         }
-
-                        if (!zBuffer.isEmpty()) {
-
-                            for (java.util.Map.Entry<Double, Double> entry : zBuffer.entrySet()) {
-
-                                // Actual line by line rendering of the visible object
-                                int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
-                                int end = (int) (screenHeight / 2 + screenHeight / (entry.getKey() * 2));
-                                double middle = 2 * screenHeight / (entry.getKey() * 2);
-
-                                double oneArtificialPixelSize = middle / 64;
-                                if (oneArtificialPixelSize > 50) {
-                                    paintColoredVerticalLine(g2dCore[finalNumThreads],
-                                            xcor-threadStartCor,
-                                            0,
-                                            screenHeight/2,
-                                            new Color(img.getRGB((int) (entry.getValue() * 64 - 32), 16)));
-                                    paintColoredVerticalLine(g2dCore[finalNumThreads],
-                                            xcor-threadStartCor,
-                                            screenHeight/2,
-                                            screenHeight,
-                                            new Color(img.getRGB((int) (entry.getValue() * 64 - 32), 48)));
-                                    break;
-                                }
-                                for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
-                                    int colorPixel = (int) (verticalPixel / oneArtificialPixelSize);
-
-                                    if (colorPixel > 63) {
-                                        colorPixel = 63;
-                                    }
-
-                                    int xCorTexture = (int) (entry.getValue() * 64);
-
-                                    if (xCorTexture <= 1) {
-                                        xCorTexture = 1;
-                                    }
-
-                                    Color imgColor = new Color(img.getRGB(xCorTexture, 64 +colorPixel));
-                                    int red = (int) (imgColor.getRed() - entry.getKey() * 5);
-                                    int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
-                                    int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
-
-                                    Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
-                                    // Performance fix - skipping colorPixels outside of the POV
-                                    if (start + middle / 64 * colorPixel >= -64 && start + middle / 64 * colorPixel <= 450) {
-                                        paintColoredVerticalLine(g2dCore[finalNumThreads],
-                                                xcor-threadStartCor,
-                                                start + middle / 64 * colorPixel,
-                                                start + middle / 64 * colorPixel + oneArtificialPixelSize,
-                                                resultColor);
-                                    }
-                                }
-                            }
-                        }
-
-                        if (!zBufferObject.isEmpty()) {
-
-                            for (java.util.Map.Entry<Double, Double> entry : zBufferObject.entrySet()) {
-
-                                // Actual line by line rendering of the visible object
-                                int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
-                                double middle = 2 * screenHeight / (entry.getKey() * 2);
-
-                                double oneArtificialPixelSize = middle / 64;
-
-                                for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
-                                    int colorPixel = (int) (verticalPixel / oneArtificialPixelSize);
-
-                                    if (colorPixel > 63) {
-                                        colorPixel = 63;
-                                    }
-
-                                    int xCorTexture = (int) (entry.getValue() * 64);
-
-                                    if (xCorTexture <= 1) {
-                                        xCorTexture = 1;
-                                    }
-
-                                    Color imgColor = new Color(img.getRGB(xCorTexture, colorPixel));
-                                    if (imgColor.getGreen() >= 1) {
-                                        int red = (int) (imgColor.getRed() - entry.getKey() * 5);
-                                        int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
-                                        int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
-
-                                        Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
-
-                                        // Performance fix - skipping colorPixels outside of the POV
-                                        if (start + middle / 64 * colorPixel >= -64 && start + middle / 64 * colorPixel <= 450) {
-                                            paintColoredVerticalLine(g2dCore[finalNumThreads],
-                                                    xcor-threadStartCor,
-                                                    start + middle / 64 * colorPixel,
-                                                    start + middle / 64 * colorPixel + oneArtificialPixelSize,
-                                                    resultColor);
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        drawFromZBufferWall(zBufferWall, xcor, finalNumThreads, threadStartCor);
+                        drawFromZBufferObject(zBufferObject, xcor, finalNumThreads, threadStartCor);
                     }
                 }
             });
@@ -476,6 +379,124 @@ public class Raycaster extends JPanel {
             g2d.drawImage(bufferedImageCore[numThreads],null, threadStartCor, 0);
         }
 
+        drawPlayerOnMap(g2d, 2);
+
+        if (config.isMetricOn()) {
+            drawPlayerMetricOnMap(g2d, 12);
+            drawMetricOverlay(g2d);
+        }
+
+        if (endTime != 0L) {
+            int millisElapsed = java.lang.Math.toIntExact((startTime - endTime)/1000/1000);
+            frameTimes.add(millisElapsed);
+            if (frameTimes.size() > screenWidthExtension) {
+                frameTimes.removeFirst();
+            }
+
+            player.tick(map);
+            frame.repaint();
+        }
+
+        Graphics2D g2dComponent = (Graphics2D) g;
+        g2dComponent.drawImage(bufferedImage, null, 0, 0);
+    }
+
+    private void drawFromZBufferWall(TreeMap<Double, Double> zBufferWall, int xcor, int finalNumThreads, int threadStartCor) {
+        if (!zBufferWall.isEmpty()) {
+
+            for (java.util.Map.Entry<Double, Double> entry : zBufferWall.entrySet()) {
+
+                // Actual line by line rendering of the visible object
+                int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
+                int end = (int) (screenHeight / 2 + screenHeight / (entry.getKey() * 2));
+                double middle = 2 * screenHeight / (entry.getKey() * 2);
+
+                double oneArtificialPixelSize = middle / 64;
+
+                for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
+                    int colorPixel = (int) (verticalPixel / oneArtificialPixelSize);
+
+                    if (colorPixel > 63) {
+                        colorPixel = 63;
+                    }
+
+                    int xCorTexture = (int) (entry.getValue() * 64);
+
+                    if (xCorTexture <= 1) {
+                        xCorTexture = 1;
+                    }
+
+                    Color imgColor = new Color(img.getRGB(xCorTexture, 64 +colorPixel));
+                    int red = (int) (imgColor.getRed() - entry.getKey() * 5);
+                    int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
+                    int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
+
+                    Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
+                    // Performance fix - skipping colorPixels outside of the POV
+                    if (start + middle / 64 * colorPixel >= -64 && start + middle / 64 * colorPixel <= 450) {
+                        paintColoredVerticalLine(g2dCore[finalNumThreads],
+                                xcor-threadStartCor,
+                                start + middle / 64 * colorPixel,
+                                start + middle / 64 * colorPixel + oneArtificialPixelSize,
+                                resultColor);
+                    }
+                }
+            }
+        }
+    }
+
+    private void drawFromZBufferObject(TreeMap<Double, Double> zBufferObject, int xcor, int finalNumThreads, int threadStartCor) {
+        if (!zBufferObject.isEmpty()) {
+
+            for (java.util.Map.Entry<Double, Double> entry : zBufferObject.entrySet()) {
+
+                // Actual line by line rendering of the visible object
+                int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
+                double middle = 2 * screenHeight / (entry.getKey() * 2);
+
+                double oneArtificialPixelSize = middle / 64;
+
+                if (oneArtificialPixelSize > 150) {
+                    // fix FPS drop when near objects
+                    break;
+                }
+
+                for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
+                    int colorPixel = (int) (verticalPixel / oneArtificialPixelSize);
+
+                    if (colorPixel > 63) {
+                        colorPixel = 63;
+                    }
+
+                    int xCorTexture = (int) (entry.getValue() * 64);
+
+                    if (xCorTexture <= 1) {
+                        xCorTexture = 1;
+                    }
+
+                    Color imgColor = new Color(img.getRGB(xCorTexture, colorPixel));
+                    if (imgColor.getGreen() >= 1) {
+                        int red = (int) (imgColor.getRed() - entry.getKey() * 5);
+                        int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
+                        int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
+
+                        Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
+
+                        // Performance fix - skipping colorPixels outside of the POV
+                        if (start + middle / 64 * colorPixel >= -64 && start + middle / 64 * colorPixel <= 450) {
+                            paintColoredVerticalLine(g2dCore[finalNumThreads],
+                                    xcor - threadStartCor,
+                                    start + middle / 64 * colorPixel,
+                                    start + middle / 64 * colorPixel + oneArtificialPixelSize,
+                                    resultColor);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void drawPlayerOnMap(Graphics2D g2d, int playerSize) {
         // player
         g2d.setColor(Color.white);
         g2d.drawRect(
@@ -486,7 +507,7 @@ public class Raycaster extends JPanel {
                         * pixelSize,
                 pixelSize,
                 pixelSize);
-        g2d.setColor(Color.GREEN);
+
         g2d.drawLine(
                 screenWidth
                         + (int) (player.getX()
@@ -494,9 +515,11 @@ public class Raycaster extends JPanel {
                 (int) (player.getY()
                         * pixelSize),
                 screenWidth + (int) (player.getX()
-                        * pixelSize + Math.cos(Math.toRadians(player.getAngle())) * pixelSize * fovLinesLength),
+                        * pixelSize + Math.cos(Math.toRadians(player.getAngle())) * pixelSize * playerSize),
                 (int) (player.getY()
-                        * pixelSize + Math.sin(Math.toRadians(player.getAngle())) * pixelSize * fovLinesLength));
+                        * pixelSize + Math.sin(Math.toRadians(player.getAngle())) * pixelSize * playerSize));
+    }
+    private void drawPlayerMetricOnMap(Graphics2D g2d, int fovLinesLength) {
         //player fov
         g2d.setColor(Color.GREEN);
         // -1/2 fov
@@ -532,53 +555,39 @@ public class Raycaster extends JPanel {
                         * pixelSize + Math.cos(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength),
                 (int) (player.getY()
                         * pixelSize + Math.sin(Math.toRadians(player.getAngle() + config.getFov() / 2)) * pixelSize * fovLinesLength));
+    }
 
-        if (config.isMetricOn()) {
-            // draw frametime
+    private void drawMetricOverlay(Graphics2D g2d) {
+        // draw frametime
+        g2d.drawString(String.valueOf(
+                frameTimes.getLast()) + " ms", // frametime in ms
+                screenWidth + screenWidthExtension/2,
+                pixelSize*22);
+
+        // draw frames per second
+        if (frameTimes.getLast() != 0) {
             g2d.drawString(String.valueOf(
-                    frameTimes.getLast()) + " ms", // frametime in ms
-                    screenWidth + screenWidthExtension/2,
-                    pixelSize*22);
-
-            // draw frames per second
-            if (frameTimes.getLast() != 0) {
-                g2d.drawString(String.valueOf(
-                        1000/(frameTimes.getLast())) + " FPS", // frametime in ms
-                        1,
-                        10
-                );
-            }
-
-            // draw player info
-            g2d.drawString(String.format( "%.2f ° angle",
-                    player.getAngle()), // frametime in ms
-                    20,
-                    pixelSize*20);
-            g2d.drawString(String.format("X: %.2f Y: %.2f",
-                    player.getX(), player.getY()), // frametime in ms
-                    20,
-                    pixelSize*21);
-
-            // draw frametime graph
-            g2d.setColor(Color.white);
-            for (int frame=1;frame<frameTimes.size();frame++) {
-                g2d.drawLine(screenWidth+frame-1, pixelSize*20+ Math.toIntExact(frameTimes.get(frame-1)/5), screenWidth+frame, pixelSize*20+ Math.toIntExact(frameTimes.get(frame)/5));
-            }
+                    1000/(frameTimes.getLast())) + " FPS", // frametime in ms
+                    1,
+                    10
+            );
         }
 
-        if (endTime != 0L) {
-            int millisElapsed = java.lang.Math.toIntExact((startTime - endTime)/1000/1000);
-            frameTimes.add(millisElapsed);
-            if (frameTimes.size() > screenWidthExtension) {
-                frameTimes.removeFirst();
-            }
+        // draw player info
+        g2d.drawString(String.format( "%.2f ° angle",
+                player.getAngle()), // frametime in ms
+                20,
+                pixelSize*20);
+        g2d.drawString(String.format("X: %.2f Y: %.2f",
+                player.getX(), player.getY()), // frametime in ms
+                20,
+                pixelSize*21);
 
-            player.tick(map);
-            frame.repaint();
+        // draw frametime graph
+        g2d.setColor(Color.white);
+        for (int frame=1;frame<frameTimes.size();frame++) {
+            g2d.drawLine(screenWidth+frame-1, pixelSize*20+ Math.toIntExact(frameTimes.get(frame-1)/5), screenWidth+frame, pixelSize*20+ Math.toIntExact(frameTimes.get(frame)/5));
         }
-
-        Graphics2D g2dComponent = (Graphics2D) g;
-        g2dComponent.drawImage(bufferedImage, null, 0, 0);
     }
 
     /**
