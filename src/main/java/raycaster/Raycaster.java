@@ -573,64 +573,7 @@ public class Raycaster extends JPanel {
                 frameTimes.removeFirst();
             }
 
-            // forward - backward
-
-            //collison
-            int checkX = (int) (player.getX()+player.getVelocityX());
-            int checkY = (int) (player.getY()+player.getVelocityY());
-
-            if (player.getAngle() > 90 && player.getAngle() < 270) {
-                checkX = (int) Math.ceil(player.getX()+player.getVelocityX() - 1);
-            }
-
-            if (player.getAngle() > 180 && player.getAngle() < 360) {
-                checkY = (int) Math.ceil(player.getY()+player.getVelocityY() - 1);
-            }
-
-            if (checkX >= 1 && checkY >= 1 && checkX < map.getSizeX() -1  && checkY < map.getSizeY()-1) {
-                int checkBothX = checkX + (checkX - (int) player.getX());
-                int checkBothY = checkY + (checkY - (int) player.getY());
-                boolean collisionOnCorX = (map.getMap()[(int) player.getY()][checkBothX] >= 10
-                                     ) || (map.getMap()[(int) player.getY() - 1][checkBothX] >= 10
-                                     ) || (map.getMap()[(int) player.getY() + 1][checkBothX] >= 10);
-                boolean collisionOnCorY = (map.getMap()[checkBothY][(int) player.getX()] >= 10
-                                     ) || (map.getMap()[checkBothY][(int) player.getX() - 1] >= 10
-                                     ) || (map.getMap()[checkBothY][(int) player.getX() + 1] >= 10);
-
-                player.setX(player.getX()+player.getVelocityX());
-                player.setY(player.getY()+player.getVelocityY());
-
-                if (collisionOnCorX) {
-                    player.setX(player.getX()-player.getVelocityX());
-                    player.setVelocityX(0);
-                    if (!collisionOnCorY) {
-                        player.setVelocityY(player.getVelocityY()*0.9);
-                    }
-                } else {
-                    player.setVelocityX(player.getVelocityX()*0.9);
-                }
-                if (collisionOnCorY) {
-                    player.setY(player.getY()-player.getVelocityY());
-                    player.setVelocityY(0);
-                    if (!collisionOnCorX) {
-                        player.setVelocityX(player.getVelocityX()*0.9);
-                    }
-                } else {
-                    player.setVelocityY(player.getVelocityY()*0.9);
-                }
-            }
-
-            // turning left or right
-            player.setAngle(player.getAngle()+player.getVelocityAngle());
-            player.setVelocityAngle(player.getVelocityAngle()*0.9);
-
-            // keeping turning angle in range of 0-360
-            if (player.getAngle() >= 360D) {
-                player.setAngle(player.getAngle() - 360D);
-            }
-            if (player.getAngle() < 0D) {
-                player.setAngle(player.getAngle() + 360D);
-            }
+            player.tick(map);
             frame.repaint();
         }
 

@@ -36,6 +36,80 @@ public class Player {
     private double velocityY = 0D;
     private double velocityAngle = 0D;
 
+    private void checkMapCollision(Map map) {
+        // forward - backward
+
+        //collison
+        int checkX = (int) (this.getX()+this.getVelocityX());
+        int checkY = (int) (this.getY()+this.getVelocityY());
+
+        if (this.getAngle() > 90 && this.getAngle() < 270) {
+            checkX = (int) Math.ceil(this.getX()+this.getVelocityX() - 1);
+        }
+
+        if (this.getAngle() > 180 && this.getAngle() < 360) {
+            checkY = (int) Math.ceil(this.getY()+this.getVelocityY() - 1);
+        }
+
+        if (checkX >= 1 && checkY >= 1 && checkX < map.getSizeX() -1  && checkY < map.getSizeY()-1) {
+            int checkBothX = checkX + (checkX - (int) this.getX());
+            int checkBothY = checkY + (checkY - (int) this.getY());
+            boolean collisionOnCorX = (map.getMap()[(int) this.getY()][checkBothX] >= 10
+            ) || (map.getMap()[(int) this.getY() - 1][checkBothX] >= 10
+            ) || (map.getMap()[(int) this.getY() + 1][checkBothX] >= 10);
+            boolean collisionOnCorY = (map.getMap()[checkBothY][(int) this.getX()] >= 10
+            ) || (map.getMap()[checkBothY][(int) this.getX() - 1] >= 10
+            ) || (map.getMap()[checkBothY][(int) this.getX() + 1] >= 10);
+
+            this.setX(this.getX()+this.getVelocityX());
+            this.setY(this.getY()+this.getVelocityY());
+
+            if (collisionOnCorX) {
+                this.setX(this.getX()-this.getVelocityX());
+                this.setVelocityX(0);
+                if (!collisionOnCorY) {
+                    this.setVelocityY(this.getVelocityY()*0.9);
+                }
+            } else {
+                this.setVelocityX(this.getVelocityX()*0.9);
+            }
+            if (collisionOnCorY) {
+                this.setY(this.getY()-this.getVelocityY());
+                this.setVelocityY(0);
+                if (!collisionOnCorX) {
+                    this.setVelocityX(this.getVelocityX()*0.9);
+                }
+            } else {
+                this.setVelocityY(this.getVelocityY()*0.9);
+            }
+        }
+    }
+
+    private void processViewAngle() {
+        // turning left or right
+        this.setAngle(this.getAngle()+this.getVelocityAngle());
+        this.setVelocityAngle(this.getVelocityAngle()*0.9);
+
+        // keeping turning angle in range of 0-360
+        if (this.getAngle() >= 360D) {
+            this.setAngle(this.getAngle() - 360D);
+        }
+        if (this.getAngle() < 0D) {
+            this.setAngle(this.getAngle() + 360D);
+        }
+    }
+
+    public Player(double x, double y, double angle) {
+        this.x = x;
+        this.y = y;
+        this.angle = angle;
+    }
+
+    public void tick(Map map) {
+        checkMapCollision(map);
+        processViewAngle();
+    }
+
     public double getVelocityX() {
         return velocityX;
     }
@@ -58,12 +132,6 @@ public class Player {
 
     public void setVelocityAngle(double velocityAngle) {
         this.velocityAngle = velocityAngle;
-    }
-
-    public Player(double x, double y, double angle) {
-        this.x = x;
-        this.y = y;
-        this.angle = angle;
     }
 
     public double getX() {
@@ -89,6 +157,4 @@ public class Player {
     public void setAngle(double angle) {
         this.angle = angle;
     }
-
-
 }
