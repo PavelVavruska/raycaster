@@ -33,7 +33,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.TreeMap;
 import javax.imageio.ImageIO;
@@ -61,7 +60,6 @@ public class Raycaster extends JPanel {
     private static Long endTime = 0L;
     private static LinkedList<Integer> frameTimes = new LinkedList<>();
     private static  BufferedImage img = null;
-    private JPanel jpanel;
 
     private Player player = new Player(3, 3, 45);
     private Config config = new Config(90, true, true);
@@ -76,7 +74,7 @@ public class Raycaster extends JPanel {
     private static Graphics2D[] g2dCore = new Graphics2D[cores];
 
     public Raycaster() {
-        System.out.println("Number of cores:" + Integer.toString(cores));
+        System.out.println("Number of cores:" + cores);
         try {
             img = ImageIO.read(new File("static/textures.png"));
         } catch (IOException e) {
@@ -422,7 +420,6 @@ public class Raycaster extends JPanel {
 
                                 // Actual line by line rendering of the visible object
                                 int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
-                                int end = (int) (screenHeight / 2 + screenHeight / (entry.getKey() * 2));
                                 double middle = 2 * screenHeight / (entry.getKey() * 2);
 
                                 double oneArtificialPixelSize = middle / 64;
@@ -457,7 +454,6 @@ public class Raycaster extends JPanel {
                                                     resultColor);
                                         }
                                     }
-
                                 }
                             }
                         }
@@ -592,18 +588,6 @@ public class Raycaster extends JPanel {
             }
 
             if (checkX >= 1 && checkY >= 1 && checkX < map.getSizeX() -1  && checkY < map.getSizeY()-1) {
-                // 0-90
-                /*if (playerAngle >= 0 && playerAngle < 90) {
-                    boolean collisionOnCorX = map.getMap()[(int) player.getY()][ checkX] > 0;
-                    boolean collisionOnCorY = map.getMap()[checkY][(int) player.getX()] > 0;
-                }*/
-                // 90-180
-
-
-                // 180-270
-
-                // 270-360
-
                 int checkBothX = checkX + (checkX - (int) player.getX());
                 int checkBothY = checkY + (checkY - (int) player.getY());
                 boolean collisionOnCorX = (map.getMap()[(int) player.getY()][checkBothX] >= 10
@@ -612,9 +596,6 @@ public class Raycaster extends JPanel {
                 boolean collisionOnCorY = (map.getMap()[checkBothY][(int) player.getX()] >= 10
                                      ) || (map.getMap()[checkBothY][(int) player.getX() - 1] >= 10
                                      ) || (map.getMap()[checkBothY][(int) player.getX() + 1] >= 10);
-
-
-
 
                 player.setX(player.getX()+player.getVelocityX());
                 player.setY(player.getY()+player.getVelocityY());
@@ -637,14 +618,7 @@ public class Raycaster extends JPanel {
                 } else {
                     player.setVelocityY(player.getVelocityY()*0.9);
                 }
-
-
-
-
             }
-            //if (map.getMap()[(int) checkY][(int) checkX];[player.getX()+player.getVelocityX()])
-
-
 
             // turning left or right
             player.setAngle(player.getAngle()+player.getVelocityAngle());
@@ -657,7 +631,6 @@ public class Raycaster extends JPanel {
             if (player.getAngle() < 0D) {
                 player.setAngle(player.getAngle() + 360D);
             }
-
             frame.repaint();
         }
 
