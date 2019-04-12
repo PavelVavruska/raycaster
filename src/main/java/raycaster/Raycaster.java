@@ -262,9 +262,6 @@ public class Raycaster extends JPanel {
                             if (checkX >= 0 && checkY >= 0 && checkX < map.getSizeX() && checkY < map.getSizeY()) {
                                 int objectOnTheMap = map.getMap()[(int) checkY][(int) checkX];
                                 double offset = ((rayX - checkX) + (rayY - checkY));
-                                /*if (offset > 1) {
-                                    offset=0;
-                                }*/
 
                                 Double objectInfo = objectOnTheMap + offset;
 
@@ -402,94 +399,88 @@ public class Raycaster extends JPanel {
     }
 
     private void drawFromZBufferWall(TreeMap<Double, Double> zBufferWall, int xcor, int finalNumThreads, int threadStartCor) {
-        if (!zBufferWall.isEmpty()) {
+        for (java.util.Map.Entry<Double, Double> entry : zBufferWall.entrySet()) {
 
-            for (java.util.Map.Entry<Double, Double> entry : zBufferWall.entrySet()) {
+            // Actual line by line rendering of the visible object
+            int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
+            int end = (int) (screenHeight / 2 + screenHeight / (entry.getKey() * 2));
+            double middle = 2 * screenHeight / (entry.getKey() * 2);
 
-                // Actual line by line rendering of the visible object
-                int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
-                int end = (int) (screenHeight / 2 + screenHeight / (entry.getKey() * 2));
-                double middle = 2 * screenHeight / (entry.getKey() * 2);
+            double oneArtificialPixelSize = middle / 64;
 
-                double oneArtificialPixelSize = middle / 64;
+            for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
+                int colorPixel = (int) (verticalPixel / oneArtificialPixelSize);
 
-                for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
-                    int colorPixel = (int) (verticalPixel / oneArtificialPixelSize);
+                if (colorPixel > 63) {
+                    colorPixel = 63;
+                }
 
-                    if (colorPixel > 63) {
-                        colorPixel = 63;
-                    }
+                int xCorTexture = (int) (entry.getValue() * 64);
 
-                    int xCorTexture = (int) (entry.getValue() * 64);
+                if (xCorTexture <= 1) {
+                    xCorTexture = 1;
+                }
 
-                    if (xCorTexture <= 1) {
-                        xCorTexture = 1;
-                    }
+                Color imgColor = new Color(img.getRGB(xCorTexture, 64 +colorPixel));
+                int red = (int) (imgColor.getRed() - entry.getKey() * 5);
+                int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
+                int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
 
-                    Color imgColor = new Color(img.getRGB(xCorTexture, 64 +colorPixel));
-                    int red = (int) (imgColor.getRed() - entry.getKey() * 5);
-                    int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
-                    int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
-
-                    Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
-                    // Performance fix - skipping colorPixels outside of the POV
-                    if (start + middle / 64 * colorPixel >= -64 && start + middle / 64 * colorPixel <= 450) {
-                        paintColoredVerticalLine(g2dCore[finalNumThreads],
-                                xcor-threadStartCor,
-                                start + middle / 64 * colorPixel,
-                                start + middle / 64 * colorPixel + oneArtificialPixelSize,
-                                resultColor);
-                    }
+                Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
+                // Performance fix - skipping colorPixels outside of the POV
+                if (start + middle / 64 * colorPixel >= -64 && start + middle / 64 * colorPixel <= 450) {
+                    paintColoredVerticalLine(g2dCore[finalNumThreads],
+                            xcor-threadStartCor,
+                            start + middle / 64 * colorPixel,
+                            start + middle / 64 * colorPixel + oneArtificialPixelSize,
+                            resultColor);
                 }
             }
         }
     }
 
     private void drawFromZBufferObject(TreeMap<Double, Double> zBufferObject, int xcor, int finalNumThreads, int threadStartCor) {
-        if (!zBufferObject.isEmpty()) {
+        for (java.util.Map.Entry<Double, Double> entry : zBufferObject.entrySet()) {
 
-            for (java.util.Map.Entry<Double, Double> entry : zBufferObject.entrySet()) {
+            // Actual line by line rendering of the visible object
+            int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
+            double middle = 2 * screenHeight / (entry.getKey() * 2);
 
-                // Actual line by line rendering of the visible object
-                int start = (int) (screenHeight / 2 - screenHeight / (entry.getKey() * 2));
-                double middle = 2 * screenHeight / (entry.getKey() * 2);
+            double oneArtificialPixelSize = middle / 64;
 
-                double oneArtificialPixelSize = middle / 64;
+            if (oneArtificialPixelSize > 150) {
+                // fix FPS drop when near objects
+                break;
+            }
 
-                if (oneArtificialPixelSize > 150) {
-                    // fix FPS drop when near objects
-                    break;
+            for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
+                int colorPixel = (int) (verticalPixel / oneArtificialPixelSize);
+
+                if (colorPixel > 63) {
+                    colorPixel = 63;
                 }
 
-                for (int verticalPixel = 1; verticalPixel <= middle; verticalPixel++) { // y full range
-                    int colorPixel = (int) (verticalPixel / oneArtificialPixelSize);
+                int xCorTexture = (int) (entry.getValue() * 64);
 
-                    if (colorPixel > 63) {
-                        colorPixel = 63;
-                    }
+                if (xCorTexture <= 1) {
+                    xCorTexture = 1;
+                }
 
-                    int xCorTexture = (int) (entry.getValue() * 64);
+                Color imgColor = new Color(img.getRGB(xCorTexture, colorPixel));
+                if (imgColor.getGreen() >= 1) {
+                    int red = (int) (imgColor.getRed() - entry.getKey() * 5);
+                    int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
+                    int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
 
-                    if (xCorTexture <= 1) {
-                        xCorTexture = 1;
-                    }
+                    Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
 
-                    Color imgColor = new Color(img.getRGB(xCorTexture, colorPixel));
-                    if (imgColor.getGreen() >= 1) {
-                        int red = (int) (imgColor.getRed() - entry.getKey() * 5);
-                        int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
-                        int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
-
-                        Color resultColor = new Color((red >= 0) ? red : 0, (green >= 0) ? green : 0, (blue >= 0) ? blue : 0);
-
-                        // Performance fix - skipping colorPixels outside of the POV
-                        if (start + middle / 64 * colorPixel >= -64 && start + middle / 64 * colorPixel <= 450) {
-                            paintColoredVerticalLine(g2dCore[finalNumThreads],
-                                    xcor - threadStartCor,
-                                    start + middle / 64 * colorPixel,
-                                    start + middle / 64 * colorPixel + oneArtificialPixelSize,
-                                    resultColor);
-                        }
+                    // Performance fix - skipping colorPixels outside of the POV
+                    if (start + middle / 64 * colorPixel >= -64 && start + middle / 64 * colorPixel <= 450) {
+                        paintColoredVerticalLine(g2dCore[finalNumThreads],
+                                xcor - threadStartCor,
+                                start + middle / 64 * colorPixel,
+                                start + middle / 64 * colorPixel + oneArtificialPixelSize,
+                                resultColor);
                     }
                 }
             }
