@@ -1,6 +1,8 @@
 # raycaster
 Raycaster engine inspired by 90's PC games.
 
+21.04.2019 version - added background image
+<img alt="Description" src="https://github.com/PavelVavruska/raycaster/blob/master/raycaster_20190421.png">
 11.04.2019 version - added collision detection, added transparent objects with texture, improved texture rendering by using two textures for one object/wall  
 <img alt="Description" src="https://github.com/PavelVavruska/raycaster/blob/master/raycaster_20190411.png">
 07.04.2019 version - flexible multicore support (Tested on 8C/16T CPU. FPS were increased by a factor of 3.)
