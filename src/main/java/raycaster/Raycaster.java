@@ -59,7 +59,8 @@ public class Raycaster extends JPanel {
     private static Long startTime = 0L;
     private static Long endTime = 0L;
     private static LinkedList<Integer> frameTimes = new LinkedList<>();
-    private static  BufferedImage img = null;
+    private static  BufferedImage imgObjects = null;
+    private static  BufferedImage imgBackground = null;
 
     private Player player = new Player(3, 3, 45);
     private Config config = new Config(90, true, true);
@@ -76,10 +77,17 @@ public class Raycaster extends JPanel {
     public Raycaster() {
         System.out.println("Number of cores:" + cores);
         try {
-            img = ImageIO.read(new File("static/textures.png"));
+            imgObjects = ImageIO.read(new File("static/textures.png"));
         } catch (IOException e) {
-            System.out.println("ERROR READ FILE");
+            System.out.println("Error while loading wall-object texture file.");
         }
+
+        try {
+            imgBackground = ImageIO.read(new File("static/background.png"));
+        } catch (IOException e) {
+            System.out.println("Error while loading background texture file.");
+        }
+
 
         KeyEventDispatcher keyEventDispatcher = new KeyEventDispatcher() {
             @Override
@@ -155,12 +163,15 @@ public class Raycaster extends JPanel {
         endTime = startTime;
         startTime = System.nanoTime();
 
-        g2d.setColor(new Color(50, 50, 50)); // ceiling
+        g2d.setColor(new Color(50, 50, 50)); // minimap
         g2d.fillRect(screenWidth, 0, screenWidth + screenWidthExtension, screenHeight);
-        g2d.setColor(new Color(56, 56, 56)); // ceiling
+        /*g2d.setColor(new Color(56, 56, 56)); // ceiling
         g2d.fillRect(0, 0, screenWidth, screenHeight / 2);
         g2d.setColor(new Color(112, 112, 112)); // floor
-        g2d.fillRect(0, screenHeight / 2, screenWidth, screenHeight);
+        g2d.fillRect(0, screenHeight / 2, screenWidth, screenHeight);*/
+        //g2d.drawImage(imgBackground,0,0);
+        g2d.drawImage(imgBackground, 0, 0, 640, 480, null);
+        //g2d.dispose();
 
         double playerAngle = player.getAngle();
         double playerAngleStart = playerAngle - config.getFov() / 2;
@@ -418,7 +429,7 @@ public class Raycaster extends JPanel {
                     xCorTexture = 1;
                 }
 
-                Color imgColor = new Color(img.getRGB(xCorTexture, 64 +colorPixel));
+                Color imgColor = new Color(imgObjects.getRGB(xCorTexture, 64 +colorPixel));
                 int red = (int) (imgColor.getRed() - entry.getKey() * 5);
                 int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
                 int blue = (int) (imgColor.getBlue() - entry.getKey() * 5);
@@ -463,7 +474,7 @@ public class Raycaster extends JPanel {
                     xCorTexture = 1;
                 }
 
-                Color imgColor = new Color(img.getRGB(xCorTexture, colorPixel));
+                Color imgColor = new Color(imgObjects.getRGB(xCorTexture, colorPixel));
                 if (imgColor.getGreen() >= 1) {
                     int red = (int) (imgColor.getRed() - entry.getKey() * 5);
                     int green = (int) (imgColor.getGreen() - entry.getKey() * 5);
