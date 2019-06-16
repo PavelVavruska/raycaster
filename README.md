@@ -8,7 +8,9 @@ How to run
 
 How to play
 ------------
-* `WASD  - movement`
+* `WS    - move forward/backward`
+* `AD    - turn left/right`
+* `QE    - strafe left/right`
 * `P     - turn perspective correction on/off`
 * `M     - turn the metric on/off`
 * `H / N - FOV settings`
