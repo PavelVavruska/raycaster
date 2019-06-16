@@ -1,6 +1,20 @@
 # raycaster
 Raycaster engine inspired by 90's PC games.
 
+How to run
+-----------
+`./gradlew clean build`
+`./gradlew run`
+
+How to play
+------------
+* `WASD  - movement`
+* `P     - turn perspective correction on/off`
+* `M     - turn the metric on/off`
+* `H / N - FOV settings`
+
+Changelog
+------------
 21.04.2019 version - added background image
 <img alt="Description" src="https://github.com/PavelVavruska/raycaster/blob/master/raycaster_20190421.png">
 11.04.2019 version - added collision detection, added transparent objects with texture, improved texture rendering by using two textures for one object/wall  
