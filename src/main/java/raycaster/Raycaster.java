@@ -62,7 +62,7 @@ public class Raycaster extends JPanel {
     private static  BufferedImage imgObjects = null;
     private static  BufferedImage imgBackground = null;
 
-    private Player player = new Player(3, 3, 45);
+    private Player player = new Player(3, 3, 100);
     private Config config = new Config(90, true, true);
 
     private Map map = new Map();
@@ -109,10 +109,14 @@ public class Raycaster extends JPanel {
                             player.setVelocityY(player.getVelocityY() - Math.sin(Math.toRadians(player.getAngle())) / 100);
                             break;
                         case 'h':
-                            config.setFov(config.getFov() + 1);
+                            if (config.getFov() < 178) {
+                                config.setFov(config.getFov() + 1);
+                            }
                             break;
                         case 'n':
-                            config.setFov(config.getFov() - 1);
+                            if (config.getFov() > 10) {
+                                config.setFov(config.getFov() - 1);
+                            }
                             break;
                         case 'p':
                             config.setPerspectiveCorrectionOn(!config.isPerspectiveCorrectionOn());
